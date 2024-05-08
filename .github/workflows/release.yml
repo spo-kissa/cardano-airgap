@@ -31,22 +31,23 @@ jobs:
           files: cardano-airgap.zip
           tag_name: 'v1.0.0'
 
-      - name: Put zip info to Release.txt
-        run: |
-          echo "\`\`\`json" >> Release.txt
-          echo "{" >> Release.txt
-          echo "  \"download_size\": $(stat --printf=%s cardano-airgap.zip)," >> Release.txt
-          echo "  \"download_sha256\": \"$(sha256sum cardano-airgap.zip | cut -d ' ' -f 1)\"," >> Release.txt
-          echo "  \"install_size\": $([[ "$(zipinfo -t cardano-airgap.zip)" =~ ^[0-9]+\ files,\ ([0-9]+)\ bytes.*$ ]]; echo ${BASH_REMATCH[1]})" >> Release.txt
-          echo "}" >> Release.txt
-          echo "\`\`\`" >> Release.txt
+      # - name: Put zip info to Release.txt
+      #   run: |
+      #     echo "\`\`\`json" >> Release.txt
+      #     echo "{" >> Release.txt
+      #     echo "  \"download_size\": $(stat --printf=%s cardano-airgap.zip)," >> Release.txt
+      #     echo "  \"download_sha256\": \"$(sha256sum cardano-airgap.zip | cut -d ' ' -f 1)\"," >> Release.txt
+      #     echo "  \"download_url\": \"${{ fromJSON(steps.upload-assets.outputs.assets)[0].browser_download_url }}\"," >> Release.txt
+      #     echo "  \"install_size\": $([[ "$(zipinfo -t cardano-airgap.zip)" =~ ^[0-9]+\ files,\ ([0-9]+)\ bytes.*$ ]]; echo ${BASH_REMATCH[1]})" >> Release.txt
+      #     echo "}" >> Release.txt
+      #     echo "\`\`\`" >> Release.txt
           
-      - name: Update body of release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: 'v1.0.0'
-          name: 'v1.0.0'
-          append_body: true
-          body_path: Release.txt
-          files: ${{ env.RELEASE_FILENAME }}
+      # - name: Update body of release
+      #   uses: softprops/action-gh-release@v2
+      #   with:
+      #     tag_name: 'v1.0.0'
+      #     name: 'v1.0.0'
+      #     append_body: true
+      #     body_path: Release.txt
+      #     files: ${{ env.RELEASE_FILENAME }}
           
