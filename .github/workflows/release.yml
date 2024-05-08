@@ -9,9 +9,12 @@ jobs:
   build:
     name: Create Archive
     runs-on: ubuntu-latest
-    
+
     steps:
       - uses: actions/checkout@v4
+
+      - name: Get tag name
+        run: echo "TAG_NAME=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
 
       - run: echo "RELEASE_FILENAME=cardano-airgap.zip" >> $GITHUB_ENV
 
@@ -30,7 +33,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           files: cardano-airgap.zip
-          tag_name: 'v1.0.0'
+          tag_name: ${{ env.TAG_NAME }}
 
       # - name: Put zip info to Release.txt
       #   run: |
