@@ -50,10 +50,12 @@
 
 # 2- Dockerイメージのビルド
 
-### 2-1. Docker の定義ファイルをダウンロードし解凍します。
+### 2-1. Docker の定義ファイルとディレクトリ構成の入ったZIPをダウンロードし解凍します。
 
+[こちらのページ](https://github.com/edaisuke/cardano-airgap-for-windows/releases) から `cardano-airgap.zip` をダウンロードしてください。
 
-[GitHub](https://github.com/edaisuke/cardano-airgap-for-windows)
+![](../images/download-docker-airgap.png)
+
 
 ---
 
