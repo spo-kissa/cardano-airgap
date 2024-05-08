@@ -28,6 +28,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           files: cardano-airgap.zip
+          tag_name: 'v1.0.0'
 
       - name: Put zip info to Release.txt
         run: |
