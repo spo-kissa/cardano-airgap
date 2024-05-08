@@ -53,6 +53,7 @@
 ### 2-1. Docker の定義ファイルをダウンロードし解凍します。
 
 
+[https://github.com/edaisuke/cardano-airgap-for-windows](https://github.com/edaisuke/cardano-airgap-for-windows)
 
 ---
 
