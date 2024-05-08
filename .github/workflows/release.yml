@@ -11,13 +11,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - run: echo "RELEASE_FILENAME=cardano-airgap.zip" >> $GITHUB_ENV
+
       - name: Create zip file
-        run: zip cardano-airgap -r airgap
-      - name: Upload assets
-        id: upload-assets
+        uses: thedoctor0/zip-release@main
+          type: 'zip'
+          filename: ${{ env.RELEASE_FILENAME }}
+          exclusions: '*.git*'
+
+      - name: Create Release
+        id: create_release
         uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           files: cardano-airgap.zip
+
       - name: Put zip info to Release.txt
         run: |
           echo "\`\`\`json" >> Release.txt
@@ -28,6 +38,7 @@ jobs:
           echo "  \"install_size\": $([[ "$(zipinfo -t cardano-airgap.zip)" =~ ^[0-9]+\ files,\ ([0-9]+)\ bytes.*$ ]]; echo ${BASH_REMATCH[1]})" >> Release.txt
           echo "}" >> Release.txt
           echo "\`\`\`" >> Release.txt
+          
       - name: Update body of release
         uses: softprops/action-gh-release@v2
         with:
