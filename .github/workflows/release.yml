@@ -20,6 +20,7 @@ jobs:
           type: 'zip'
           filename: ${{ env.RELEASE_FILENAME }}
           exclusions: '*.git*'
+          directory: ./airgap
 
       - name: Create Release
         id: create_release
