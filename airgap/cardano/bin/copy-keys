@@ -1,0 +1,83 @@
+#!/bin/bash
+
+ESC=$(printf '\033')
+
+printf "${ESC}[32m%s${ESC}[m" "share ディレクトリ内の cnode および cold-keys ディレクトリから証明書とペアキーなどをコピーします。"
+echo
+printf "${ESC}[31m%s${ESC}[m" "PCをネットワークから切断した状態で作業することを強く推奨します!!"
+echo
+
+echo
+
+read -n 1 p "実行しますか？ (Y/n): " > process
+echo
+
+case "$process" in
+    Y|y)
+        ;;
+    *)
+        echo "終了します。"
+        exit 1
+        ;;
+esac
+
+
+SRC=/mnt/share/cnode
+DST=/home/cardano/cnode
+if [ -d $SRC ]; then
+    printf "${ESC}[32m%s${ESC}[m" "${SRC}ディレクトリをコピーしています。"
+    echo
+    cp "${SRC}/*" "${DST}/"
+
+    FILES=(
+        "payment.vkey"
+        "payment.skey"
+        "stake.vkey"
+        "stake.skey"
+        "stake.addr"
+        "payment.addr"
+    )
+
+    for FILE in ${FILES[@]}; do
+        if [ -f "${DST}/${FILE}" ]; then
+            printf "${ESC}[32m%s${ESC}[m" "${FILE}のパーミッションを変更しています"
+            echo
+            chmod 400 "${DST}/${FILE}"
+        fi
+    done
+else
+    printf "${ESC}[31m%s${ESC}[m" "${SRC}ディレクトリが見つかりませんでした。"
+    echo
+fi
+
+
+
+SRC=/mnt/share/cold-keys
+DST=/home/cardano/cold-keys
+if [ -d $SRC ]; then
+    printf "${ESC}[32m%s${ESC}[m" "${SRC}ディレクトリをコピーしています。"
+    echo
+    cp "${SRC}/*" "${DST}/"
+
+    FILES=(
+        "node.vkey"
+        "node.skey"
+    )
+
+    for FILE in ${FILES[@]}; do
+        if [ -f "${DST}/${FILE}" ]; then
+            printf "${ESC}[32m%s${ESC}[m" "${FILE}のパーミッションを変更しています"
+            echo
+            chmod 400 "${DST}/${FILE}"
+        fi
+    done
+
+    printf "${ESC}[32m%s${ESC}[m" "${DST}のパーミッションを変更しています"
+    echo
+    chmod 400 $DST
+
+else
+    printf "${ESC}[31m%s${ESC}[m" "${SRC}ディレクトリが見つかりませんでした。"
+    echo
+fi
+
