@@ -9,17 +9,14 @@ echo
 
 echo
 
-read -n 1 p "実行しますか？ (Y/n): " > process
+read -n 1 -p "実行しますか？ (y/N): " process
 echo
 
-case "$process" in
-    Y|y)
-        ;;
-    *)
-        echo "終了します。"
-        exit 1
-        ;;
-esac
+if [[ $process != [yY] ]]; then
+    printf "${ESC}[31m%s${ESC}[m" "キャンセルします。"
+    echo
+    exit
+fi
 
 
 SRC=/mnt/share/cnode
