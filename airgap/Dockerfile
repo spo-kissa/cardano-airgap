@@ -27,15 +27,17 @@ RUN apt-get install -y \
     liblmdb-dev \
     bash \
     locales \
-    locales-all
+    locales-all \
+    nano \
+    vim
 
 RUN locale-gen en_US.UTF-8
 
 RUN apt-get clean -y
 
 RUN mkdir -p $HOME/git/cardano-node2 && cd $HOME/git/cardano-node2 \
-    && wget https://github.com/IntersectMBO/cardano-node/releases/download/8.9.2/cardano-node-8.9.2-linux.tar.gz \
-    && tar zxvf cardano-node-8.9.2-linux.tar.gz ./bin/cardano-node ./bin/cardano-cli \
+    && wget https://github.com/IntersectMBO/cardano-node/releases/download/9.1.0/cardano-node-9.1.0-linux.tar.gz \
+    && tar zxvf cardano-node-9.1.0-linux.tar.gz ./bin/cardano-node ./bin/cardano-cli \
     && $(find $HOME/git/cardano-node2 -type f -name "cardano-cli") version \
     && $(find $HOME/git/cardano-node2 -type f -name "cardano-node") version \
     && cp $(find $HOME/git/cardano-node2 -type f -name "cardano-cli") /usr/local/bin/cardano-cli \
