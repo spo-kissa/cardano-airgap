@@ -3,9 +3,15 @@ services:
     build: ./
     volumes:
       - ./share:/mnt/share:rw
+      - local_bin:/usr/local/bin
+      - etc:/etc/
       - cardano:/home/cardano
     network_mode: none
 
 volumes:
   cardano:
+    driver: local
+  local_bin:
+    driver: local
+  etc:
     driver: local

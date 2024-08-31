@@ -1,33 +1,20 @@
-FROM ubuntu:22.04
+FROM ubuntu:jammy
+
+ARG PASS=airgap
 
 RUN apt-get update -y && apt-get upgrade -y
 RUN apt-get install -y \
-    git \
     jq \
     bc \
-    automake \
     tmux \
-    rsync \
     htop \
     curl \
-    build-essential \
-    pkg-config \
-    libffi-dev \
-    libgmp-dev \
-    libssl-dev \
-    libtinfo-dev \
-    libsystemd-dev \
-    zlib1g-dev \
-    make \
-    g++ \
     wget \
     libncursesw5 \
-    libtool \
-    autoconf \
-    liblmdb-dev \
     bash \
     locales \
     locales-all \
+    sudo \
     nano \
     vim
 
@@ -45,16 +32,18 @@ RUN mkdir -p $HOME/git/cardano-node2 && cd $HOME/git/cardano-node2 \
     && rm -rf $HOME\git
 
 RUN useradd -m -s /bin/bash cardano && \
-    echo "cardano:airgap" | chpasswd
+    echo "cardano:${PASS}" | chpasswd
 RUN gpasswd -a cardano sudo
 
 
-COPY ./cardano/cnode/ /home/cardano/cnode/
-COPY ./cardano/cold-keys/ /home/cardano/cold-keys/
-COPY ./cardano/bin/ /home/cardano/bin/
+RUN mkdir /home/cardano/cnode/
+RUN mkdir /home/cardano/cold-keys/
+
 RUN chown -R cardano: /home/cardano/cnode/ \
-    && chown -R cardano: /home/cardano/cold-keys/ \
-    && chown -R cardano: /home/cardano/bin
+    && chown -R cardano: /home/cardano/cold-keys/
+
+# COPY ./cardado/bin/copy-keys /usr/local/bin/
+# RUN chmod +x /home/cardano/bin/
 
 RUN mkdir /mnt/share && chown -R cardano: /mnt/share/
 
@@ -71,8 +60,7 @@ RUN echo export PATH=/home/cardano/bin:\$PATH >> /home/cardano/.bashrc
 ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
 ENV LC_ALL en_US.UTF-8
-
 RUN . /home/cardano/.bashrc
-RUN mkdir -p /home/cardano/cnode
+
 
 ENTRYPOINT ["tail", "-F", "/dev/null"]

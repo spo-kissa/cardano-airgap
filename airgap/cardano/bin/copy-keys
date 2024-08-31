@@ -24,18 +24,18 @@ DST=/home/cardano/cnode
 if [ -d $SRC ]; then
     printf "${ESC}[32m%s${ESC}[m" "${SRC}ディレクトリをコピーしています。"
     echo
-    cp "${SRC}/*" "${DST}/"
 
     FILES=(
         "payment.vkey"
         "payment.skey"
+        "payment.addr"
         "stake.vkey"
         "stake.skey"
         "stake.addr"
-        "payment.addr"
     )
 
     for FILE in ${FILES[@]}; do
+        cp "${SRC}/${FILE}" "${DST}/${FILE}"
         if [ -f "${DST}/${FILE}" ]; then
             printf "${ESC}[32m%s${ESC}[m" "${FILE}のパーミッションを変更しています"
             echo
@@ -54,7 +54,6 @@ DST=/home/cardano/cold-keys
 if [ -d $SRC ]; then
     printf "${ESC}[32m%s${ESC}[m" "${SRC}ディレクトリをコピーしています。"
     echo
-    cp "${SRC}/*" "${DST}/"
 
     FILES=(
         "node.vkey"
@@ -62,6 +61,7 @@ if [ -d $SRC ]; then
     )
 
     for FILE in ${FILES[@]}; do
+        cp ${SRC}/${FILE} ${DST}/${FILE}
         if [ -f "${DST}/${FILE}" ]; then
             printf "${ESC}[32m%s${ESC}[m" "${FILE}のパーミッションを変更しています"
             echo
