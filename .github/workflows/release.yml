@@ -34,7 +34,7 @@ jobs:
         id: create_release
         uses: softprops/action-gh-release@v2
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.KEY }}
         with:
           files: airgap/cardano-airgap.zip
           tag_name: ${{ env.TAG_NAME }}
