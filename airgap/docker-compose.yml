@@ -1,6 +1,13 @@
 services:
   airgap:
-    build: ./
+    build:
+      context: .
+      args:
+        - PASSWD
+        - HOST_PWD
+    environment:
+      - PASSWD
+      - HOST_PWD
     volumes:
       - ./share:/mnt/share:rw
       - local_bin:/usr/local/bin

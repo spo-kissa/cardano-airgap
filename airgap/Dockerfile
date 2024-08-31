@@ -1,6 +1,7 @@
 FROM ubuntu:jammy
 
-ARG PASS=airgap
+ARG PASSWD=airgap
+ARG HOST_PWD=share
 
 RUN apt-get update -y && apt-get upgrade -y
 RUN apt-get install -y \
@@ -32,7 +33,7 @@ RUN mkdir -p $HOME/git/cardano-node2 && cd $HOME/git/cardano-node2 \
     && rm -rf $HOME\git
 
 RUN useradd -m -s /bin/bash cardano && \
-    echo "cardano:${PASS}" | chpasswd
+    echo "cardano:${PASSWD}" | chpasswd
 RUN gpasswd -a cardano sudo
 
 
@@ -42,8 +43,13 @@ RUN mkdir /home/cardano/cold-keys/
 RUN chown -R cardano: /home/cardano/cnode/ \
     && chown -R cardano: /home/cardano/cold-keys/
 
-# COPY ./cardado/bin/copy-keys /usr/local/bin/
-# RUN chmod +x /home/cardano/bin/
+COPY ./bin/copy-keys /home/cardano/bin/
+COPY ./bin/lock-keys /home/cardano/bin/
+COPY ./bin/unlock-keys /home/cardano/bin/
+COPY ./bin/sign /home/cardano/bin/
+COPY ./bin/ctool.sh /home/cardano/bin/
+RUN chown -R cardano: /home/cardano/bin \
+    && chmod -R 755 /home/cardano/bin/*
 
 RUN mkdir /mnt/share && chown -R cardano: /mnt/share/
 
@@ -54,8 +60,11 @@ RUN echo export NODE_HOME=/home/cardano/cnode >> /home/cardano/.bashrc && \
     echo export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH" >> /home/cardano/.bashrc && \
     echo export NODE_NETWORK="--mainnet" >> /home/cardano/.bashrc && \
     echo export CARDANO_NODE_NETWORK_ID=mainnet >> /home/cardano/.bashrc && \
-    echo export LANG=ja_JP.UTF-8 >> /home/cardano/.bashrc
-RUN echo export PATH=/home/cardano/bin:\$PATH >> /home/cardano/.bashrc
+    echo export LANG=ja_JP.UTF-8 >> /home/cardano/.bashrc && \
+    echo export PATH=$PATH:$HOME/bin >> /home/cardano/.bashrc && \
+    echo export HOST_PWD="${HOST_PWD}" >> /home/cardano/.bashrc && \
+    echo alias ctool="ctool.sh" >> $HOME/.bashrc
+
 
 ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
