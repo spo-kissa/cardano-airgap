@@ -1,1 +1,6 @@
 airgap/.Dockerfile.swp
+.DS_Store
+.idea/cardano-airgap.iml
+.idea/modules.xml
+.idea/vcs.xml
+.idea/workspace.xml
