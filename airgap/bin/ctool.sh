@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CTOOL_VERSION=0.0.1
+CTOOL_VERSION=0.0.2
 
 COLDKEYS_DIR='$HOME/cold-keys'
 
@@ -35,10 +35,10 @@ readYn() {
 
     case $ANS in
         "" | [Yy]* )
-            return 1
+            return 0
             ;;
         * )
-            return 0
+            return 1
             ;;
     esac
 }
@@ -72,6 +72,7 @@ install() {
     done
 
     while true; do
+        echo
         read -n 1 -p "コピーが出来たらEnterキーを押下してください" enter
         clear
 
@@ -100,7 +101,32 @@ install() {
         fi
     done
 
-    read -n 1 ANS
+    echo
+    echo 'インポートの準備が整いました！'
+    if readYn "インポートを開始しますか？"; then
+
+        echo
+
+        for key in ${keys[@]}; do
+            src="/mnt/share${key}"
+            dst="/home/cardano${key}"
+
+            echo "${src} => ${dst}"
+            cp ${src} ${dst}
+
+        done
+
+        echo
+        echo 'shareフォルダのデータを削除しています...'
+        rm -rf /mnt/share/cold-keys
+        rm -rf /mnt/share/cnode
+
+        echo 
+        read -n 1 -p 'コールドキーのインポートが正常に完了しました！' enter
+
+    fi
+
+    main
 }
 
 cli_update() {
@@ -118,13 +144,15 @@ cli_update() {
         clear
         echo '■ 現在のバージョン'
         cardano-cli version
-
+        echo
         echo '■ 新しいバージョン'
         $HOME/cardano-cli version
-
+        echo
         if readYn "バージョンアップをおこなってもよろしいですか？"; then
 
+            echo
             sudo cp $HOME/cardano-cli /usr/local/bin/cardano-cli
+            echo
 
             rm $HOME/cardano-cli
             rm /mnt/share/cardano-cli
@@ -157,6 +185,7 @@ main() {
     echo ' -------------------------------'
     echo ' [3] 初期設定'
     echo ' [4] cardao-cliバージョンアップ'
+    echo ' [5] ctoolバージョンアップ'
     echo ' -------------------------------'
     echo ' [q] 終了'
     echo
