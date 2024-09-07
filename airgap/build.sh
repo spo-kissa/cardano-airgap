@@ -33,4 +33,7 @@ esac
 
 export HOST_PWD=$(pwd)
 
+echo
+echo "Dockerのビルドを開始しています..."
 docker compose build
+
