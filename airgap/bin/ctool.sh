@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CTOOL_VERSION=0.0.4
+CTOOL_VERSION=0.1.5
 
 COLDKEYS_DIR='$HOME/cold-keys'
 
@@ -20,6 +20,10 @@ trap 'stty echo' EXIT
 myExit() {
     exit_msg="$2"
     cleanup "$1"
+}
+
+main() {
+    main_menu
 }
 
 quit() {
@@ -127,6 +131,149 @@ install() {
     main
 }
 
+
+reflesh_kes() {
+
+    while true; do
+
+        clear
+        echo
+        echo "■ ブロックプロデューサーノードで gtool を起動し、KESの更新を始めて下さい。"
+        echo
+        echo "1.BPのkes.vkeyとkes.skey をエアギャップのcnodeディレクトリにコピーしてください"
+        echo 
+        echo "上記の表示が出たら、以下の2つのファイルをshareディレクトリにコピーしてください"
+        echo "  kes.vkey"
+        echo "  kes.skey"
+        echo
+
+        read -n 1 -p "コピーが出来たらEnterキーを押してください" enter
+
+        if [ -s /mnt/share/kes.vkey ] && [ -f /mnt/share/kes.vkey ]; then
+
+            if [ -s /mnt/share/kes.skey ] && [ -f /mnt/share/kes.skey ]; then
+
+                break
+
+            else
+
+                echo "kes.skeyファイルが空かファイルが見つかりません。"
+
+            fi
+
+        else
+
+            echo "kes.vkeyファイルが空かファイルが見つかりません。"
+
+        fi
+
+        echo
+        read -n 1 -p "再度チェックするにはEnterキーを押下してください。> " enter
+
+    done
+
+    cp /mnt/share/kes.vkey $NODE_HOME/
+    cp /mnt/share/kes.skey $NODE_HOME/
+
+    cd $NODE_HOME
+
+    VKEY=$(sha256sum kes.vkey | cut -d ' ' -f 1)
+    SKEY=$(sha256sum kes.skey | cut -d ' ' -f 1)
+
+    echo "kes.vkey ➩ ${VKEY}"
+    echo "kes.skey ➩ ${SKEY}"
+    echo
+
+    read -n 1 -p "ハッシュ値が一致している事を確認してください > " enter 
+
+    while true; do
+        clear
+        echo
+        echo "■ カウンター番号情報"
+        echo
+        echo "今回更新のカウンター番号: XX"
+        echo
+        echo "ブロックプロデューサーノードのカウンター番号情報に表示されている、"
+        echo "今回更新のカウンター番号を入力してください。"
+        
+        read -p "半角数字で入力してEnterキーを押してください > " counter
+        echo
+
+        echo "カウンター番号: '${counter}'"
+        echo
+        if readYn "上記であっていますか？"; then
+        
+            chmod u+rwx $HOME/cold-keys
+            cardano-cli node new-counter \
+                --cold-verification-key-file $HOME/cold-keys/node.vkey \
+                --counter-value ${counter} \
+                --operational-certificate-issue-counter-file $HOME/cold-keys/node.counter
+
+            break
+
+        fi
+
+    done
+
+    cardano-cli text-view decode-cbor \
+        --in-file  $HOME/cold-keys/node.counter \
+        | grep int | head -1 | cut -d"(" -f2 | cut -d")" -f1
+
+    
+    while true; do
+
+        clear
+        echo
+        echo "■ 現在のstartKesPeriod"
+        echo
+        echo "現在のstartKesPeriod: XXXX"
+        echo
+        echo "ブロックプロデューサーノードに表示されている、"
+        echo "現在のstartKesPeriod の値を入力してください。"
+
+        
+        read -p "半角数字で入力してEnterキーを押してください > " period
+        echo
+
+        echo "startKesPeriod: '${period}'"
+        echo
+        if readYn "上記であっていますか？"; then
+        
+            cd $NODE_HOME
+
+            cardano-cli node issue-op-cert \
+                --kes-verification-key-file kes.vkey \
+                --cold-signing-key-file $HOME/cold-keys/node.skey \
+                --operational-certificate-issue-counter $HOME/cold-keys/node.counter \
+                --kes-period ${period} \
+                --out-file node.cert
+            
+            chmod a-rwx $HOME/cold-keys
+
+            cp $NODE_HOME/node.cert /mnt/share/
+
+            clear
+            echo
+            echo "■ node.cert生成完了"
+            echo
+            echo "share ディレクトリに node.cert ファイルを出力しました。"
+            echo "このファイルをBPのcnodeディレクトリにコピーしてください。"
+            echo
+
+            break
+
+        fi
+
+    done
+
+    echo
+    read -n 1 -p "メインメニューに戻るにはEnterキーを押してください > " enter
+
+    main
+
+}
+
+
 cli_update() {
     clear
 
@@ -184,11 +331,11 @@ ctool_update() {
 
             echo
             cp /mnt/share/ctool.sh ${HOME}/bin/
+            chmod 755 ${HOME}/bin/ctool.sh
             echo "'ctool.sh'をバージョンアップしました!!"
-            echo
-
-            ctool
-            myExit
+            echo "Enterキーを押してリロードしてください"
+            read wait
+            return 1
 
         fi
 
@@ -261,7 +408,6 @@ wallet_menu() {
 
     main_header
     echo ' [1] 報酬の引き出し'
-    echo ' [2] KES更新'
     echo ' -------------------------------'
     echo ' [q] メインメニューに戻る'
     echo
@@ -286,7 +432,7 @@ wallet_menu() {
 }
 
 
-main() {
+main_menu() {
 
     main_header
     echo ' [1] ウォレット操作'
@@ -305,8 +451,8 @@ main() {
             wallet_menu
             ;;
         2)
-        echo "KES更新"
-        ;;
+            reflesh_kes
+            ;;
         3)
             install
             ;;
