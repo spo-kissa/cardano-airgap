@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CTOOL_VERSION=0.0.2
+CTOOL_VERSION=0.0.3
 
 COLDKEYS_DIR='$HOME/cold-keys'
 
@@ -167,7 +167,42 @@ cli_update() {
 }
 
 
-main() {
+ctool_update() {
+    clear
+    echo "'share'ディレクトリに新しいバージョンの'ctool.sh'をコピーしてください。"
+    read -n 1 -p "コピーができたらEnterキーを押下してください" enter
+    if [ -f "/mnt/share/ctool.sh" ]; then
+
+        HASH=$(sha256sum /mnt/share/ctool.sh)
+
+        echo
+        echo "以下のハッシュ値がctool.shのリリースノートなどの値と一致している事を確認してください。"
+        echo ${HASH}
+        echo
+        if readYn "ハッシュ値に問題がなければ Y キーを押してください。それ以外の場合は N キーを押してください"; then
+
+            echo
+            cp /mnt/share/ctool.sh ${HOME}/bin/
+            echo "'ctool.sh'をバージョンアップしました!!"
+            echo
+
+            ctool
+            myExit
+
+        fi
+
+        read -n 1 -p "戻るには何かキーを押してください" press
+
+    else
+        echo
+        read -n 1 -p "'share/ctool.sh'ファイルが見つかりませんでした。" press
+    fi
+
+    main
+}
+
+
+main_header() {
 
     clear
 
@@ -180,6 +215,41 @@ main() {
     echo ' -------------------------------------------------'
     echo -e " CLI:${cli_version} | Disk残容量:${available_disk}"
     echo
+
+}
+
+
+wallet_menu() {
+
+    main_header
+    echo ' [1] 報酬の引き出し'
+    echo ' [2] KES更新'
+    echo ' -------------------------------'
+    echo ' [q] 終了'
+    echo
+    read -n 1 -p "メニュー番号を入力してください: > " num
+
+    case ${num} in
+        1)
+        ;;
+        2)
+        ;;
+        q)
+            main
+            ;;
+        *)
+            echo
+            echo '番号が不正です...'
+            sleep 1
+            wallet_menu
+            ;;
+    esac
+}
+
+
+main() {
+
+    main_header
     echo ' [1] ウォレット操作'
     echo ' [2] KES更新'
     echo ' -------------------------------'
@@ -193,26 +263,29 @@ main() {
 
     case ${menu} in
         1)
-        echo ”ウォレット操作”
-        ;;
+            wallet_menu
+            ;;
         2)
         echo "KES更新"
         ;;
         3)
-        install
-        ;;
+            install
+            ;;
         4)
-        cli_update
-        ;;
+            cli_update
+            ;;
+        5)
+            ctool_update
+            ;;
         q)
-        quit
-        ;;
+            quit
+            ;;
         *)
-        echo
-        echo '番号が不正です...'
-        sleep 1
-        main
-        ;;
+            echo
+            echo '番号が不正です...'
+            sleep 1
+            main
+            ;;
     esac
 }
 
