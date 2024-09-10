@@ -35,5 +35,7 @@ export HOST_PWD=$(pwd)
 
 echo
 echo "Dockerのビルドを開始しています..."
-docker compose build
+echo
+echo
+docker compose build --no-cache
 
