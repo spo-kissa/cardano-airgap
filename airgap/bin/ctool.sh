@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CTOOL_VERSION=0.1.5
+CTOOL_VERSION=0.1.6
 
 COLDKEYS_DIR='$HOME/cold-keys'
 
@@ -175,13 +175,16 @@ reflesh_kes() {
     cp /mnt/share/kes.vkey $NODE_HOME/
     cp /mnt/share/kes.skey $NODE_HOME/
 
+    rm /mnt/share/kes.vkey
+    rm /mnt/share/kes.skey
+
     cd $NODE_HOME
 
     VKEY=$(sha256sum kes.vkey | cut -d ' ' -f 1)
     SKEY=$(sha256sum kes.skey | cut -d ' ' -f 1)
 
-    echo "kes.vkey ➩ ${VKEY}"
-    echo "kes.skey ➩ ${SKEY}"
+    echo "kes.vkey >> ${VKEY}"
+    echo "kes.skey >> ${SKEY}"
     echo
 
     read -n 1 -p "ハッシュ値が一致している事を確認してください > " enter 
