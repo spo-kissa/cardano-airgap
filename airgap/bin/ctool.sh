@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CTOOL_VERSION=0.0.3
+CTOOL_VERSION=0.0.4
 
 COLDKEYS_DIR='$HOME/cold-keys'
 
@@ -9,7 +9,7 @@ cleanup() {
     [[ -n $1 ]] && err=$1 || err=$?
     [[ $err -eq 0 ]] && clear
     tput cnorm # restore cursor
-    [[ -n ${exit_msg} ]] && echo -e "¥n${exit_msg}¥n" || echo -e "¥nSPO JAPAN GUILD TOOL Closed!¥n"
+    [[ -n ${exit_msg} ]] && echo -e "${exit_msg}" || echo -e "SPO JAPAN GUILD TOOL for Airgap Closed!"
     tput sgr0  # turn off all attributes
     exit $err
 }
@@ -25,9 +25,7 @@ myExit() {
 quit() {
     clear
     echo
-    echo "SPO JAPAN GUILD TOOL Closed!"
-    echo
-    exit
+    myExit
 }
 
 readYn() {
@@ -73,7 +71,7 @@ install() {
 
     while true; do
         echo
-        read -n 1 -p "コピーが出来たらEnterキーを押下してください" enter
+        read -n 1 -p "'share'ディレクトリにコピーが出来たらEnterキーを押下してください" enter
         clear
 
         ng=0
@@ -148,14 +146,17 @@ cli_update() {
         echo '■ 新しいバージョン'
         $HOME/cardano-cli version
         echo
-        if readYn "バージョンアップをおこなってもよろしいですか？"; then
+        if readYn "バージョンアップを実行してもよろしいですか？"; then
 
             echo
             sudo cp $HOME/cardano-cli /usr/local/bin/cardano-cli
+            sudo chmod 755 /usr/local/bin/cardano-cli
             echo
 
             rm $HOME/cardano-cli
             rm /mnt/share/cardano-cli
+
+            read -n 1 -p "バージョンアップが完了しました！" press
 
         fi
     else
@@ -202,6 +203,43 @@ ctool_update() {
 }
 
 
+withdrawal_stake() {
+
+    clear
+
+    echo "BPにて'tx.raw'を作成後、'share'ディレクトリにコピーしてください。"
+    read -n 1 -p "コピーが出来たらEnterキーを押してください。" enter
+    
+    if [ -f /mnt/share/tx.raw ]; then
+
+        cp /mnt/share/tx.raw $NODE_HOME/tx.raw
+
+        cd $NODE_HOME
+        cardano-cli transaction sign \
+            --tx-body-file tx.raw \
+            --signing-key-file payment.skey \
+            --signing-key-file stake.skey \
+            $NODE_NETWORK \
+            --out-file tx.signed
+        cd -
+
+        cp $NODE_HOME/tx.signed /mnt/share/tx.signed
+        rm /mnt/share/tx.raw
+
+        echo "トランザクションへの署名が完了しました!"
+        read -n 1 -p "'share'ディレクトリに'tx.signed'ファイルを出力しました。" enter
+
+    else
+
+        read -n 1 -p "'share'ディレクトリに'tx.raw'ファイルが見つかりません。" enter
+
+    fi
+
+    wallet_menu
+
+}
+
+
 main_header() {
 
     clear
@@ -213,7 +251,7 @@ main_header() {
     echo
     echo -e " >> SPO JAPAN GUILD TOOL for Airgap ver$CTOOL_VERSION <<"
     echo ' -------------------------------------------------'
-    echo -e " CLI:${cli_version} | Disk残容量:${available_disk}"
+    echo -e " CLI: ${cli_version} | Disk残容量: ${available_disk}B"
     echo
 
 }
@@ -225,13 +263,14 @@ wallet_menu() {
     echo ' [1] 報酬の引き出し'
     echo ' [2] KES更新'
     echo ' -------------------------------'
-    echo ' [q] 終了'
+    echo ' [q] メインメニューに戻る'
     echo
     read -n 1 -p "メニュー番号を入力してください: > " num
 
     case ${num} in
         1)
-        ;;
+            withdrawal_stake
+            ;;
         2)
         ;;
         q)
@@ -254,7 +293,7 @@ main() {
     echo ' [2] KES更新'
     echo ' -------------------------------'
     echo ' [3] 初期設定'
-    echo ' [4] cardano-cliバージョンアップ'
+    echo ' [4] cardao-cliバージョンアップ'
     echo ' [5] ctoolバージョンアップ'
     echo ' -------------------------------'
     echo ' [q] 終了'
