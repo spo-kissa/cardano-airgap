@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CTOOL_VERSION=0.1.6
+CTOOL_VERSION=0.2.0
 
 COLDKEYS_DIR='$HOME/cold-keys'
 
@@ -277,6 +277,94 @@ reflesh_kes() {
 }
 
 
+governance() {
+	clear
+	echo
+	
+	echo "ガバナンスアクションIDを入力してください。"
+	read -p "Govenance Action ID: " AID
+	
+	GAID=$(echo $AID | cut -d '#' -f 1)
+	TXID=$(echo $AID | cut -d '#' -f 2)
+	
+	echo
+	echo "ガバナンスアクションID: ${GAID}"
+	echo "TxID: ${TXID}"
+	
+	echo
+	read -p "このガバナンスへの回答を入力してください [Yes/No/Abstain/Cancel]：" Answer
+	
+	ANS=$(echo "${Answer:0:1}" | tr [:lower:] [:upper:])
+	case $ANS in
+		Y)
+			VOTE="--yes"
+			echo "YESに投票します。"
+			;;
+		N)
+			VOTE="--no"
+			echo "NOに投票します。"
+			;;
+		A)
+			VOTE="--abstain"
+			echo "棄権票を投票します。"
+			;;
+		C)
+			read -n 1 -p "キャンセルします..."
+			main_menu
+			;;
+		*)
+			read -n 1 -p "不正な入力です..."
+			main_menu
+			;;
+	esac
+	
+	echo
+	cd $NODE_HOME
+	chmod u+rwx $HOME/cold-keys
+	cardano-cli conway governance vote create \
+		${VOTE} \
+		--governance-action-tx-id "${GAID}" \
+		--governance-action-index "${TXID}" \
+		--cold-verification-key-file $HOME/cold-keys/node.vkey \
+		--out-file ${GAID}
+	
+	chmod a-rwx $HOME/cold-keys
+		
+	cp $NODE_HOME/${GAID} /mnt/share/
+	
+	clear
+	echo
+	echo "'share'ディレクトリに'${GAID}'ファイルを出力しました。"
+	echo
+	read -n 1 -p "'vote-tx.raw'を'share'ディレクトリにコピーしたら、Enterキーを押してください。" Enter
+	
+	clear
+	echo
+	
+	echo "'vote-tx.raw'に署名をおこないます。"
+	read -n 1 -p "よろしいですか？ > " Enter
+	
+	cd $NODE_HOME
+	chmod u+rwx $HOME/cold-keys
+	
+	cp /mnt/share/vote-tx.raw $NODE_HOME/
+	cardano-cli conway transaction sign \
+		--tx-body-file vote-tx.raw \
+		--signing-key-file $HOME/cold-keys/node.skey \
+		--signing-key-file payment.skey \
+		--out-file vote-tx.signed
+	cp $NODE_HOME/vote-tx.signed /mnt/share/
+	rm /mnt/share/vote-tx.raw
+	chmod a-rwx $HOME/cold-keys
+	
+	echo
+	echo "'vote-tx.signed'ファイルを'share'ディレクトリに出力しました。"
+	echo
+	echo
+	read -n 1 -p "メインメニューに戻るにはEnterキーを押してください。"
+}
+
+
 cli_update() {
     clear
 
@@ -440,10 +528,11 @@ main_menu() {
     main_header
     echo ' [1] ウォレット操作'
     echo ' [2] KES更新'
+    echo ' [3] ガバナンスアクション'
     echo ' -------------------------------'
-    echo ' [3] 初期設定'
-    echo ' [4] cardao-cliバージョンアップ'
-    echo ' [5] ctoolバージョンアップ'
+    echo ' [5] 初期設定'
+    echo ' [6] cardao-cliバージョンアップ'
+    echo ' [7] ctoolバージョンアップ'
     echo ' -------------------------------'
     echo ' [q] 終了'
     echo
@@ -457,12 +546,15 @@ main_menu() {
             reflesh_kes
             ;;
         3)
+        	governance
+        	;;
+        5)
             install
             ;;
-        4)
+        6)
             cli_update
             ;;
-        5)
+        7)
             ctool_update
             ;;
         q)
