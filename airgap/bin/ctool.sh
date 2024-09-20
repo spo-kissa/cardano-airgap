@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CTOOL_VERSION=0.2.0
+CTOOL_VERSION=0.2.7
 
 COLDKEYS_DIR='$HOME/cold-keys'
 
@@ -128,7 +128,7 @@ install() {
 
     fi
 
-    main
+    main_menu
 }
 
 
@@ -272,12 +272,13 @@ reflesh_kes() {
     echo
     read -n 1 -p "メインメニューに戻るにはEnterキーを押してください > " enter
 
-    main
+    main_menu
 
 }
 
 
 governance() {
+
 	clear
 	echo
 	
@@ -288,7 +289,7 @@ governance() {
 	TXID=$(echo $AID | cut -d '#' -f 2)
 	
 	echo
-	echo "ガバナンスアクションID: ${GAID}"
+	echo "ID: ${GAID}"
 	echo "TxID: ${TXID}"
 	
 	echo
@@ -317,6 +318,8 @@ governance() {
 			main_menu
 			;;
 	esac
+	
+	read -n 1 -p "よろしいですか？ > " Answer 
 	
 	echo
 	cd $NODE_HOME
@@ -361,14 +364,16 @@ governance() {
 	echo "'vote-tx.signed'ファイルを'share'ディレクトリに出力しました。"
 	echo
 	echo
-	read -n 1 -p "メインメニューに戻るにはEnterキーを押してください。"
+	read -n 1 -p
+	
+	main_menu
 }
 
 
 cli_update() {
     clear
 
-    echo "'${HOST_PWD}/share'ディレクトリに新しいバージョンのcardano-cliをコピーしてください。"
+    echo "'share'ディレクトリに新しいバージョンのcardano-cliをコピーしてください。"
     read -n 1 -p "コピーができたらEnterキーを押下してください" enter
 
     if [ -f "/mnt/share/cardano-cli" ]; then
@@ -423,6 +428,7 @@ ctool_update() {
             echo
             cp /mnt/share/ctool.sh ${HOME}/bin/
             chmod 755 ${HOME}/bin/ctool.sh
+            rm /mnt/share/ctool.sh
             echo "'ctool.sh'をバージョンアップしました!!"
             echo "Enterキーを押してリロードしてください"
             read wait
@@ -478,6 +484,31 @@ withdrawal_stake() {
 }
 
 
+withdrawal_payment() {
+
+	clear
+	
+	echo
+	echo "gtoolにて作成した'tx.raw'を'share'ディレクトリにコピーしてください"
+	echo
+	read -n 1 -p "コピーが出来たらEnterキーを押してください" enter
+	
+	cd $NODE_HOME
+	cp /mnt/share/tx.raw $NODE_HOME/
+	cardano-cli transaction sign \
+  		--tx-body-file tx.raw \
+  		--signing-key-file payment.skey \
+  		--mainnet \
+  		--out-file tx.signed
+	cp $NODE_HOME/tx.signed /mnt/share/
+	rm /mnt/share/tx.raw
+	
+	echo
+	echo
+	read -n 1 -p "'tx.signed'を'share'ディレクトリに出力しました"
+}
+
+
 main_header() {
 
     clear
@@ -498,10 +529,17 @@ main_header() {
 wallet_menu() {
 
     main_header
-    echo ' [1] 報酬の引き出し'
+    echo '■ プール報酬出金(stake.addr)'
+    echo ' [1] 任意のアドレス(ADAHandle)へ出金'
+    echo ' [2] payment.addrへの出金'
+    echo
+    echo '■ プール資金出金(payment.addr)'
     echo ' -------------------------------'
+    echo ' [3] 任意のアドレス(ADAHandle)へ出金'
     echo ' [q] メインメニューに戻る'
     echo
+    echo '--------------------------------'
+    echo '[h] ホームへ戻る　[q] 終了'
     read -n 1 -p "メニュー番号を入力してください: > " num
 
     case ${num} in
@@ -509,10 +547,18 @@ wallet_menu() {
             withdrawal_stake
             ;;
         2)
-        ;;
+        	read -n 1 -p "未実装です。" enter
+        	wallet_menu
+        	;;
+        3)
+        	withdrawal_payment
+        	;;
         q)
-            main
+            myExit
             ;;
+        h)
+        	main_menu
+        	;;
         *)
             echo
             echo '番号が不正です...'
