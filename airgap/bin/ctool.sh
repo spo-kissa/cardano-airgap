@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CTOOL_VERSION=0.2.7
+CTOOL_VERSION=0.3.0
 
 COLDKEYS_DIR='$HOME/cold-keys'
 
@@ -21,6 +21,28 @@ myExit() {
     exit_msg="$2"
     cleanup "$1"
 }
+
+
+echo_red() {
+    tput setaf 1 && echo -n $1 && tput setaf 7
+}
+
+echo_green() {
+    tput setaf 2 && echo -n $1 && tput setaf 7
+}
+
+echo_yellow() {
+    tput setaf 3 && echo -n $1 && tput setaf 7
+}
+
+echo_blue() {
+    tput setaf 4 && echo -n $1 && tput setaf 7
+}
+
+echo_magenta() {
+    tput setaf 5 && echo -n $1 && tput setaf 7
+}
+
 
 main() {
     main_menu
@@ -277,95 +299,40 @@ reflesh_kes() {
 }
 
 
-governance() {
+vote_spo() {
 
 	clear
-	echo
+
+    cp /mnt/share/create_votetx_script $NODE_HOME/create_votetx_script
+    cp /mnt/share/params.json $NODE_HOME/params.json
+	SCRIPT_SHA=$(sha256sum $NODE_HOME/create_votetx_script | awk '{ print $1 }')
 	
-	echo "ガバナンスアクションIDを入力してください。"
-	read -p "Govenance Action ID: " AID
-	
-	GAID=$(echo $AID | cut -d '#' -f 1)
-	TXID=$(echo $AID | cut -d '#' -f 2)
-	
-	echo
-	echo "ID: ${GAID}"
-	echo "TxID: ${TXID}"
-	
-	echo
-	read -p "このガバナンスへの回答を入力してください [Yes/No/Abstain/Cancel]：" Answer
-	
-	ANS=$(echo "${Answer:0:1}" | tr [:lower:] [:upper:])
-	case $ANS in
-		Y)
-			VOTE="--yes"
-			echo "YESに投票します。"
-			;;
-		N)
-			VOTE="--no"
-			echo "NOに投票します。"
-			;;
-		A)
-			VOTE="--abstain"
-			echo "棄権票を投票します。"
-			;;
-		C)
-			read -n 1 -p "キャンセルします..."
-			main_menu
-			;;
-		*)
-			read -n 1 -p "不正な入力です..."
-			main_menu
-			;;
-	esac
-	
-	read -n 1 -p "よろしいですか？ > " Answer 
-	
-	echo
-	cd $NODE_HOME
-	chmod u+rwx $HOME/cold-keys
-	cardano-cli conway governance vote create \
-		${VOTE} \
-		--governance-action-tx-id "${GAID}" \
-		--governance-action-index "${TXID}" \
-		--cold-verification-key-file $HOME/cold-keys/node.vkey \
-		--out-file ${GAID}
-	
-	chmod a-rwx $HOME/cold-keys
-		
-	cp $NODE_HOME/${GAID} /mnt/share/
-	
-	clear
-	echo
-	echo "'share'ディレクトリに'${GAID}'ファイルを出力しました。"
-	echo
-	read -n 1 -p "'vote-tx.raw'を'share'ディレクトリにコピーしたら、Enterキーを押してください。" Enter
-	
-	clear
-	echo
-	
-	echo "'vote-tx.raw'に署名をおこないます。"
-	read -n 1 -p "よろしいですか？ > " Enter
-	
-	cd $NODE_HOME
-	chmod u+rwx $HOME/cold-keys
-	
-	cp /mnt/share/vote-tx.raw $NODE_HOME/
-	cardano-cli conway transaction sign \
-		--tx-body-file vote-tx.raw \
-		--signing-key-file $HOME/cold-keys/node.skey \
-		--signing-key-file payment.skey \
-		--out-file vote-tx.signed
-	cp $NODE_HOME/vote-tx.signed /mnt/share/
-	rm /mnt/share/vote-tx.raw
-	chmod a-rwx $HOME/cold-keys
-	
-	echo
-	echo "'vote-tx.signed'ファイルを'share'ディレクトリに出力しました。"
-	echo
-	echo
-	read -n 1 -p
-	
+    echo 'ハッシュは以下の通りです。'
+    echo -n 'ハッシュ値： '
+    echo_green $SCRIPT_SHA
+    echo
+    echo
+    echo '次の手順を実行しますか？'
+    echo ' [1] はい   [2] キャンセル'
+    echo
+    read -n 1 -p '>' num
+    case $num in
+        1)
+            source $NODE_HOME/create_votetx_script
+            ;;
+        2)
+            govenance_menu
+            ;;
+        *)
+            vote_spo
+            ;;
+    esac
+
+    mkdir /mnt/share/governance
+    cp $NODE_HOME/governance/vote-tx.signed /mnt/share/governance/vote-tx.signed
+
+    read -n 1 -p "'share/governance'ディレクトリ内に、'vote-tx.signed'ファイルを出力しました。"
+
 	main_menu
 }
 
@@ -518,25 +485,55 @@ main_header() {
     available_disk=$(df -h /usr | awk 'NR==2 {print $4}')
 
     echo
-    echo -e " >> SPO JAPAN GUILD TOOL for Airgap ver$CTOOL_VERSION <<"
+    echo -n " >> SPO JAPAN GUILD TOOL for Airgap " && echo_green "ver${CTOOL_VERSION}" && echo " <<"
     echo ' -------------------------------------------------'
-    echo -e " CLI: ${cli_version} | Disk残容量: ${available_disk}B"
+    echo -n " CLI: " && echo_yellow "${cli_version}" && echo -n " | Disk残容量: " && echo_yellow "${available_disk}B"
+    echo
     echo
 
+}
+
+
+govenance_menu() {
+
+    clear
+    echo '------------------------------------------------------------'
+    echo '>> ガバナンス(登録・投票)'
+    echo '------------------------------------------------------------'
+    echo '[1] SPO投票'
+    echo '-------------------'
+    echo '[b] 戻る'
+    echo
+    echo 'メニュー番号を入力してください : '
+
+    read -n 1 -p '>' num
+
+    case ${num} in
+        1)
+            vote_spo
+            ;;
+        b)
+            main_menu
+            ;;
+        *)
+            govenance_menu
+            ;;
+    esac
 }
 
 
 wallet_menu() {
 
     main_header
-    echo '■ プール報酬出金(stake.addr)'
+    echo_magenta '■ プール報酬出金(stake.addr)'
+    echo
     echo ' [1] 任意のアドレス(ADAHandle)へ出金'
     echo ' [2] payment.addrへの出金'
     echo
-    echo '■ プール資金出金(payment.addr)'
+    echo_magenta '■ プール資金出金(payment.addr)'
+    echo
     echo ' -------------------------------'
     echo ' [3] 任意のアドレス(ADAHandle)へ出金'
-    echo ' [q] メインメニューに戻る'
     echo
     echo '--------------------------------'
     echo '[h] ホームへ戻る　[q] 終了'
@@ -574,7 +571,7 @@ main_menu() {
     main_header
     echo ' [1] ウォレット操作'
     echo ' [2] KES更新'
-    echo ' [3] ガバナンスアクション'
+    echo ' [3] ガバナンス(登録・投票)'
     echo ' -------------------------------'
     echo ' [5] 初期設定'
     echo ' [6] cardao-cliバージョンアップ'
@@ -592,7 +589,7 @@ main_menu() {
             reflesh_kes
             ;;
         3)
-        	governance
+        	govenance_menu
         	;;
         5)
             install
