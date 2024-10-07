@@ -14,6 +14,6 @@ printf "${ESC}[32m%s${ESC}[m" "アクセス制限を解除しました。"
 echo
 printf "${ESC}[31m%s${ESC}[m" "必要な作業が終了したら必ずアクセス制限を戻してください。"
 echo
-printf "${ESC}[31m%s${ESC}[m" "./lock-keys.sh"
+printf "${ESC}[31m%s${ESC}[m" "lock-keys"
 echo
 
