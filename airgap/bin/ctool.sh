@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CTOOL_VERSION=0.3.0
+CTOOL_VERSION=0.3.4
 
 COLDKEYS_DIR='$HOME/cold-keys'
 
@@ -22,6 +22,90 @@ myExit() {
     cleanup "$1"
 }
 
+
+ctool_upgrade() {
+
+    cp /mnt/share/ctool.sh ${HOME}/bin/
+    chmod 755 ${HOME}/bin/ctool.sh
+    rm /mnt/share/ctool.sh
+
+    echo "'ctool.sh'をバージョンアップしました!!"
+    echo "Enterキーを押してリロードしてください"
+    read wait
+
+}
+
+ctool_update() {
+    clear
+    echo "'share'ディレクトリに新しいバージョンの'ctool.sh'をコピーしてください。"
+    read -n 1 -p "コピーができたらEnterキーを押下してください" enter
+    if [ -f "/mnt/share/ctool.sh" ]; then
+
+        HASH=$(sha256sum /mnt/share/ctool.sh)
+
+        echo
+        echo "以下のハッシュ値がctool.shのリリースノートなどの値と一致している事を確認してください。"
+        echo ${HASH}
+        echo
+        if readYn "ハッシュ値に問題がなければ Y キーを押してください。それ以外の場合は N キーを押してください"; then
+
+            echo
+            cp /mnt/share/ctool.sh ${HOME}/bin/
+            chmod 755 ${HOME}/bin/ctool.sh
+            rm /mnt/share/ctool.sh
+            echo "'ctool.sh'をバージョンアップしました!!"
+            echo "Enterキーを押してリロードしてください"
+            read wait
+            return 1
+
+        fi
+
+        read -n 1 -p "戻るには何かキーを押してください" press
+
+    else
+        echo
+        read -n 1 -p "'share/ctool.sh'ファイルが見つかりませんでした。" press
+    fi
+
+    main
+}
+
+check_update() {
+
+    if [ -f /mnt/share/ctool.sh ]; then
+        VERSION=$(cat /mnt/share/ctool.sh | grep CTOOL_VERSION= | head -n 1)
+        VERSION_NUMBER=$(get_version_number ${VERSION:14})
+
+        MY_VERSION_NUMBER=$(get_version_number $CTOOL_VERSION)
+
+        VERSION_DIFF=$((VERSION_NUMBER-MY_VERSION_NUMBER))
+
+        if (( ${VERSION_DIFF} > 0 )); then
+
+            HASH=$(sha256sum /mnt/share/ctool.sh)
+
+            clear
+            echo
+            echo_green "新しい'ctool.ch'を'share'ディレクトリ内に検出しました!!"
+            echo
+            echo
+            echo "バージョン：${VERSION:14}"
+            echo -n "ハッシュ値："
+            echo_green ${HASH:0:64}
+            echo
+            echo "v${CTOOL_VERSION} --> v${VERSION:14}"
+            echo
+            if [ readYn "バージョンアップしますか？" -eq 1 ]; then
+                ctool_upgrade
+            fi
+        fi
+    fi
+}
+
+
+get_version_number() {
+    echo "$1" | awk -F. '{printf "%2d%02d%02d", $1,$2,$3}' | bc
+}
 
 echo_red() {
     tput setaf 1 && echo -n $1 && tput setaf 7
@@ -45,6 +129,8 @@ echo_magenta() {
 
 
 main() {
+    check_update
+
     main_menu
 }
 
@@ -229,7 +315,7 @@ reflesh_kes() {
         if readYn "上記であっていますか？"; then
         
             chmod u+rwx $HOME/cold-keys
-            cardano-cli node new-counter \
+            cardano-cli conway node new-counter \
                 --cold-verification-key-file $HOME/cold-keys/node.vkey \
                 --counter-value ${counter} \
                 --operational-certificate-issue-counter-file $HOME/cold-keys/node.counter
@@ -240,7 +326,7 @@ reflesh_kes() {
 
     done
 
-    cardano-cli text-view decode-cbor \
+    cardano-cli conway text-view decode-cbor \
         --in-file  $HOME/cold-keys/node.counter \
         | grep int | head -1 | cut -d"(" -f2 | cut -d")" -f1
 
@@ -266,7 +352,7 @@ reflesh_kes() {
         
             cd $NODE_HOME
 
-            cardano-cli node issue-op-cert \
+            cardano-cli conway node issue-op-cert \
                 --kes-verification-key-file kes.vkey \
                 --cold-signing-key-file $HOME/cold-keys/node.skey \
                 --operational-certificate-issue-counter $HOME/cold-keys/node.counter \
@@ -378,42 +464,6 @@ cli_update() {
 }
 
 
-ctool_update() {
-    clear
-    echo "'share'ディレクトリに新しいバージョンの'ctool.sh'をコピーしてください。"
-    read -n 1 -p "コピーができたらEnterキーを押下してください" enter
-    if [ -f "/mnt/share/ctool.sh" ]; then
-
-        HASH=$(sha256sum /mnt/share/ctool.sh)
-
-        echo
-        echo "以下のハッシュ値がctool.shのリリースノートなどの値と一致している事を確認してください。"
-        echo ${HASH}
-        echo
-        if readYn "ハッシュ値に問題がなければ Y キーを押してください。それ以外の場合は N キーを押してください"; then
-
-            echo
-            cp /mnt/share/ctool.sh ${HOME}/bin/
-            chmod 755 ${HOME}/bin/ctool.sh
-            rm /mnt/share/ctool.sh
-            echo "'ctool.sh'をバージョンアップしました!!"
-            echo "Enterキーを押してリロードしてください"
-            read wait
-            return 1
-
-        fi
-
-        read -n 1 -p "戻るには何かキーを押してください" press
-
-    else
-        echo
-        read -n 1 -p "'share/ctool.sh'ファイルが見つかりませんでした。" press
-    fi
-
-    main
-}
-
-
 withdrawal_stake() {
 
     clear
@@ -426,7 +476,7 @@ withdrawal_stake() {
         cp /mnt/share/tx.raw $NODE_HOME/tx.raw
 
         cd $NODE_HOME
-        cardano-cli transaction sign \
+        cardano-cli conway transaction sign \
             --tx-body-file tx.raw \
             --signing-key-file payment.skey \
             --signing-key-file stake.skey \
@@ -462,10 +512,10 @@ withdrawal_payment() {
 	
 	cd $NODE_HOME
 	cp /mnt/share/tx.raw $NODE_HOME/
-	cardano-cli transaction sign \
+	cardano-cli conway transaction sign \
   		--tx-body-file tx.raw \
   		--signing-key-file payment.skey \
-  		--mainnet \
+  		$NODE_NETWORK \
   		--out-file tx.signed
 	cp $NODE_HOME/tx.signed /mnt/share/
 	rm /mnt/share/tx.raw
@@ -612,9 +662,5 @@ main_menu() {
     esac
 }
 
-
-upgrade() {
-    return 0
-}
 
 main
