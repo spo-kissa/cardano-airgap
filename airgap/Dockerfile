@@ -24,8 +24,8 @@ RUN locale-gen en_US.UTF-8
 RUN apt-get clean -y
 
 RUN mkdir -p $HOME/git/cardano-node2 && cd $HOME/git/cardano-node2 \
-    && wget https://github.com/IntersectMBO/cardano-node/releases/download/9.1.1/cardano-node-9.1.1-linux.tar.gz \
-    && tar zxvf cardano-node-9.1.1-linux.tar.gz ./bin/cardano-node ./bin/cardano-cli \
+    && wget https://github.com/IntersectMBO/cardano-node/releases/download/9.2.1/cardano-node-9.2.1-linux.tar.gz \
+    && tar zxvf cardano-node-9.2.1-linux.tar.gz ./bin/cardano-node ./bin/cardano-cli \
     && $(find $HOME/git/cardano-node2 -type f -name "cardano-cli") version \
     && $(find $HOME/git/cardano-node2 -type f -name "cardano-node") version \
     && cp $(find $HOME/git/cardano-node2 -type f -name "cardano-cli") /usr/local/bin/cardano-cli \
@@ -37,21 +37,22 @@ RUN useradd -m -s /bin/bash cardano && \
 RUN gpasswd -a cardano sudo
 
 
-RUN mkdir /home/cardano/cnode/
-RUN mkdir /home/cardano/cold-keys/
-
-RUN chown -R cardano: /home/cardano/cnode/ \
-    && chown -R cardano: /home/cardano/cold-keys/
+RUN mkdir -p /home/cardano/cnode/ && \
+    mkdir -p /home/cardano/cold-keys/ && \
+    mkdir -p /home/cardano/bin/ && \
+    mkdir -p /mnt/share
 
 COPY ./bin/copy-keys /home/cardano/bin/
 COPY ./bin/lock-keys /home/cardano/bin/
 COPY ./bin/unlock-keys /home/cardano/bin/
-COPY ./bin/sign /home/cardano/bin/
 COPY ./bin/ctool.sh /home/cardano/bin/
-RUN chown -R cardano: /home/cardano/bin \
-    && chmod -R 755 /home/cardano/bin/*
 
-RUN mkdir /mnt/share && chown -R cardano: /mnt/share/
+RUN chmod -R 755 /home/cardano/bin/* && \
+    chown -R cardano: /home/cardano/bin && \
+    chown -R cardano: /home/cardano/cnode && \
+    chown -R cardano: /home/cardano/cold-keys && \
+    chown -R cardano: /home/cardano/bin/* && \
+    chown -R cardano: /mnt/share/
 
 USER cardano
 WORKDIR /home/cardano/
@@ -64,7 +65,6 @@ RUN echo export NODE_HOME=/home/cardano/cnode >> /home/cardano/.bashrc && \
     echo export PATH=$PATH:$HOME/bin >> /home/cardano/.bashrc && \
     echo export HOST_PWD="${HOST_PWD}" >> /home/cardano/.bashrc && \
     echo alias ctool="ctool.sh" >> $HOME/.bashrc
-
 
 ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
