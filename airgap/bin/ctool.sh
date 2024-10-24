@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CTOOL_VERSION=0.5.91
+CTOOL_VERSION=0.6.3
 
 SHARE_DIR="/mnt/share"
 
@@ -195,7 +195,7 @@ main() {
 quit() {
     clear
     echo
-    myExit "" ""
+    myExit 0 ""
 }
 
 readYn() {
@@ -297,14 +297,6 @@ install_coldkeys() {
     clear
     echo
 
-    if check_coldkeys_exists; then
-        echo_red "既にコールドキーはインストールされています"
-        echo
-        echo
-        pressKeyEnter
-        return 1
-    fi
-
     if encrypted_keys_exists; then
         echo_red "既に暗号化済みコールドキーがインストールされています"
         echo
@@ -318,7 +310,8 @@ install_coldkeys() {
     # shellcheck disable=SC2206
     keys=($keys_array)
 
-    echo "'${HOST_PWD}/share'ディレクトリに以下のファイルをコピーしてください。"
+    echo
+    echo "'share'ディレクトリに以下のファイルをコピーしてください。"
     echo 
     for i in "${!keys[@]}"; do
         echo "${keys[$i]}"
@@ -347,11 +340,18 @@ install_coldkeys() {
                 err='ファイルが見つかりません'
             fi
             echo " ${keys[$i]} ... ${err}"
-            echo
         done
         
         if [ $ng -eq 0 ]; then
             break
+        else
+            echo
+            echo_red "ファイルの一部が空か見つかりません"
+            echo
+            echo
+            if ! readYn "再度チェックをおこないますか？"; then
+                return 1
+            fi
         fi
     done
 
@@ -1122,6 +1122,8 @@ main_header() {
         echo -n " | {{ Bold \"Disk残容量:\" }} {{ Color \"3\" \"\" \"${available_disk}B\" }}" | gum format --type template
         echo -n " | {{ Bold \"Kyes:\" }} {{ Color \"3\" \"\" \"${has_keys}\" }}" | gum format --type template
         echo -n "${emoji_keys}" | gum format --type emoji
+        echo
+        echo
     else
         echo
         echo -n " >> SPO JAPAN GUILD TOOL for Airgap " && echo_green "ver${CTOOL_VERSION}" && echo " <<"
@@ -1160,6 +1162,13 @@ settings_menu() {
 
     case ${menu} in
         1)
+            if check_coldkeys_exists; then
+                echo_red "既にコールドキーはインストールされています"
+                echo
+                echo
+                pressKeyEnter
+                return 1
+            fi
             install_coldkeys
             ;;
         2)
@@ -1191,7 +1200,7 @@ settings_menu() {
             ;;
         q)
             echo
-            myExit
+            quit
             ;;
         *)
             settings_menu
@@ -1228,7 +1237,7 @@ governance_menu() {
             ;;
         q)
             echo
-            myExit
+            quit
             ;;
         *)
             governance_menu
@@ -1282,7 +1291,7 @@ wallet_menu() {
         	;;
         q)
             echo
-            myExit
+            quit
             ;;
         h)
         	main_menu

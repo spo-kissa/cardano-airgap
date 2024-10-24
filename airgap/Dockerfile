@@ -1,12 +1,9 @@
 FROM ubuntu:jammy
 
-RUN apt-get update \
-    && apt-get install -y gpg curl \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
 RUN <<EOF
-mkdir -p /etc/apt/keyrings \
+apt-get update \
+&& apt-get install -y gpg curl \
+&& apt-get clean && mkdir -p /etc/apt/keyrings \
 && curl -fsSL https://repo.charm.sh/apt/gpg.key | gpg --dearmor -o /etc/apt/keyrings/charm.gpg \
 && echo "deb [signed-by=/etc/apt/keyrings/charm.gpg] https://repo.charm.sh/apt/ * *" | tee /etc/apt/sources.list.d/charm.list \
 && apt-get update \
@@ -22,34 +19,32 @@ mkdir -p /etc/apt/keyrings \
     sudo \
     tmux \
     vim \
-    wget \
-&& apt-get clean \
-&& rm -rf /var/lib/apt/lists/*
+    wget && \
+apt-get clean && \
+rm -rf /var/lib/apt/lists/* && \
+
+locale-gen en_US.UTF-8 && \
+
+    mkdir -p ${HOME}/git/cardano-node2 && cd ${HOME}/git/cardano-node2 \
+&& wget https://github.com/IntersectMBO/cardano-node/releases/download/9.2.1/cardano-node-9.2.1-linux.tar.gz \
+&& tar zxvf cardano-node-9.2.1-linux.tar.gz ./bin/cardano-node ./bin/cardano-cli \
+&& $(find ${HOME}/git/cardano-node2 -type f -name "cardano-cli") version \
+&& $(find ${HOME}/git/cardano-node2 -type f -name "cardano-node") version \
+&& cp $(find ${HOME}/git/cardano-node2 -type f -name "cardano-cli") /usr/local/bin/cardano-cli \
+&& cardano-cli version \
+&& rm -rf ${HOME}\git \
+\
+&& useradd -m -s /bin/bash cardano \
+&& echo "cardano:airgap" | chpasswd \
+&& gpasswd -a cardano sudo \
+\
+&& mkdir -p /home/cardano/cnode/ \
+&& mkdir -p /home/cardano/cold-keys/ \
+&& mkdir -p /home/cardano/bin/ \
+&& mkdir -p /mnt/share \
+&& touch /home/cardano/.sudo_as_admin_successful
 EOF
 
-RUN locale-gen en_US.UTF-8
-
-RUN mkdir -p ${HOME}/git/cardano-node2 && cd ${HOME}/git/cardano-node2 \
-    && wget https://github.com/IntersectMBO/cardano-node/releases/download/9.2.1/cardano-node-9.2.1-linux.tar.gz \
-    && tar zxvf cardano-node-9.2.1-linux.tar.gz ./bin/cardano-node ./bin/cardano-cli \
-    && $(find ${HOME}/git/cardano-node2 -type f -name "cardano-cli") version \
-    && $(find ${HOME}/git/cardano-node2 -type f -name "cardano-node") version \
-    && cp $(find ${HOME}/git/cardano-node2 -type f -name "cardano-cli") /usr/local/bin/cardano-cli \
-    && cardano-cli version \
-    && rm -rf ${HOME}\git
-
-RUN useradd -m -s /bin/bash cardano && \
-    echo "cardano:airgap" | chpasswd
-RUN gpasswd -a cardano sudo
-
-
-RUN mkdir -p /home/cardano/cnode/ && \
-    mkdir -p /home/cardano/cold-keys/ && \
-    mkdir -p /home/cardano/bin/ && \
-    mkdir -p /mnt/share \
-    touch /home/cardano/.sudo_as_admin_successful
-
-COPY ./bin/copy-keys /home/cardano/bin/
 COPY ./bin/lock-keys /home/cardano/bin/
 COPY ./bin/unlock-keys /home/cardano/bin/
 COPY ./bin/ctool.sh /home/cardano/bin/
