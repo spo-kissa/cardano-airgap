@@ -59,7 +59,7 @@ RUN chmod -R 755 /home/cardano/bin/* && \
 USER cardano
 WORKDIR /home/cardano/
 
-RUN echo export TERM=xterm-256color \
+RUN echo export TERM=xterm-256color >> /home/cardano/.bashrc && \
     echo export NODE_HOME=/home/cardano/cnode >> /home/cardano/.bashrc && \
     echo export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH" >> /home/cardano/.bashrc && \
     echo export NODE_NETWORK="--mainnet" >> /home/cardano/.bashrc && \
