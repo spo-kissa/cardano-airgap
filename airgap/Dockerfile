@@ -1,46 +1,53 @@
 FROM ubuntu:jammy
 
-ARG PASSWD=airgap
-ARG HOST_PWD=share
+RUN apt-get update \
+    && apt-get install -y gpg curl \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN apt-get update -y && apt-get upgrade -y
-RUN apt-get install -y \
-    jq \
-    bc \
-    tmux \
-    htop \
-    curl \
-    wget \
-    libncursesw5 \
+RUN <<EOF
+mkdir -p /etc/apt/keyrings \
+&& curl -fsSL https://repo.charm.sh/apt/gpg.key | gpg --dearmor -o /etc/apt/keyrings/charm.gpg \
+&& echo "deb [signed-by=/etc/apt/keyrings/charm.gpg] https://repo.charm.sh/apt/ * *" | tee /etc/apt/sources.list.d/charm.list \
+&& apt-get update \
+&& apt-get install -y \
     bash \
+    bc \
+    gum \
+    htop \
+    jq \
     locales \
     locales-all \
-    sudo \
     nano \
-    vim
+    sudo \
+    tmux \
+    vim \
+    wget \
+&& apt-get clean \
+&& rm -rf /var/lib/apt/lists/*
+EOF
 
 RUN locale-gen en_US.UTF-8
 
-RUN apt-get clean -y
-
-RUN mkdir -p $HOME/git/cardano-node2 && cd $HOME/git/cardano-node2 \
+RUN mkdir -p ${HOME}/git/cardano-node2 && cd ${HOME}/git/cardano-node2 \
     && wget https://github.com/IntersectMBO/cardano-node/releases/download/9.2.1/cardano-node-9.2.1-linux.tar.gz \
     && tar zxvf cardano-node-9.2.1-linux.tar.gz ./bin/cardano-node ./bin/cardano-cli \
-    && $(find $HOME/git/cardano-node2 -type f -name "cardano-cli") version \
-    && $(find $HOME/git/cardano-node2 -type f -name "cardano-node") version \
-    && cp $(find $HOME/git/cardano-node2 -type f -name "cardano-cli") /usr/local/bin/cardano-cli \
+    && $(find ${HOME}/git/cardano-node2 -type f -name "cardano-cli") version \
+    && $(find ${HOME}/git/cardano-node2 -type f -name "cardano-node") version \
+    && cp $(find ${HOME}/git/cardano-node2 -type f -name "cardano-cli") /usr/local/bin/cardano-cli \
     && cardano-cli version \
-    && rm -rf $HOME\git
+    && rm -rf ${HOME}\git
 
 RUN useradd -m -s /bin/bash cardano && \
-    echo "cardano:${PASSWD}" | chpasswd
+    echo "cardano:airgap" | chpasswd
 RUN gpasswd -a cardano sudo
 
 
 RUN mkdir -p /home/cardano/cnode/ && \
     mkdir -p /home/cardano/cold-keys/ && \
     mkdir -p /home/cardano/bin/ && \
-    mkdir -p /mnt/share
+    mkdir -p /mnt/share \
+    touch /home/cardano/.sudo_as_admin_successful
 
 COPY ./bin/copy-keys /home/cardano/bin/
 COPY ./bin/lock-keys /home/cardano/bin/
@@ -57,14 +64,14 @@ RUN chmod -R 755 /home/cardano/bin/* && \
 USER cardano
 WORKDIR /home/cardano/
 
-RUN echo export NODE_HOME=/home/cardano/cnode >> /home/cardano/.bashrc && \
+RUN echo export TERM=xterm-256color \
+    echo export NODE_HOME=/home/cardano/cnode >> /home/cardano/.bashrc && \
     echo export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH" >> /home/cardano/.bashrc && \
     echo export NODE_NETWORK="--mainnet" >> /home/cardano/.bashrc && \
     echo export CARDANO_NODE_NETWORK_ID=mainnet >> /home/cardano/.bashrc && \
     echo export LANG=ja_JP.UTF-8 >> /home/cardano/.bashrc && \
-    echo export PATH=$PATH:$HOME/bin >> /home/cardano/.bashrc && \
-    echo export HOST_PWD="${HOST_PWD}" >> /home/cardano/.bashrc && \
-    echo alias ctool="ctool.sh" >> $HOME/.bashrc
+    echo export PATH=${PATH}:${HOME}/bin >> /home/cardano/.bashrc && \
+    echo alias ctool="ctool.sh" >> ${HOME}/.bashrc
 
 ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
