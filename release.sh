@@ -92,6 +92,9 @@ mv -f airgap/docker-compose.usb.yml airgap/docker-compose.yml && check || exit
 echo -n "Copying directory 'airgap/bin' -> 'cardano/bin'..."
 cp -r ./airgap/bin ./airgap/cardano/ && check || exit
 
+echo -n "Create directory 'cardano/cnode' and 'cardano/cold-keys'..."
+mkdir -p ./airgap/cardano/{cnode,cold-keys} && check || exit
+
 echo -n "Creating '.sudo_as_admin_successful' file..."
 touch ./airgap/cardano/.sudo_as_admin_successful && check || exit
 

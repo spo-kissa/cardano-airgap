@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CTOOL_VERSION=0.6.3
+CTOOL_VERSION=0.6.4
 
 SHARE_DIR="/mnt/share"
 
@@ -366,7 +366,7 @@ install_coldkeys() {
         unlock_keys
 
         for i in "${!keys[@]}"; do
-            src="{$SHARE_DIR}${keys[$i]}"
+            src="${SHARE_DIR}${keys[$i]}"
             dst="/home/cardano${keys[$i]}"
 
             echo "${src} => ${dst}"
@@ -387,8 +387,8 @@ install_coldkeys() {
 
         echo
         echo "'share'フォルダのデータを削除しています..."
-        rm -rf "{$SHARE_DIR}/cold-keys"
-        rm -rf "{$SHARE_DIR}/cnode"
+        rm -rf "${SHARE_DIR}/cold-keys"
+        rm -rf "${SHARE_DIR}/cnode"
 
         echo
         echo_green "コールドキーのインポートが正常に完了しました！"
