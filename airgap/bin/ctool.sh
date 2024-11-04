@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CTOOL_VERSION=0.6.4
+CTOOL_VERSION=0.6.9
 
 SHARE_DIR="/mnt/share"
 
@@ -435,13 +435,15 @@ reflesh_kes() {
 
             else
 
-                echo "kes.skeyファイルが空かファイルが見つかりません。"
+                echo_red "kes.skeyファイルが空かファイルが見つかりません。"
+                echo
 
             fi
 
         else
 
-            echo "kes.vkeyファイルが空かファイルが見つかりません。"
+            echo_red "kes.vkeyファイルが空かファイルが見つかりません。"
+            echo
 
         fi
 
@@ -457,24 +459,28 @@ reflesh_kes() {
     cp ${SHARE_DIR}/kes.vkey "${NODE_HOME}/"
     cp ${SHARE_DIR}/kes.skey "${NODE_HOME}/"
 
-    cd "${NODE_HOME}/" && (echo_red "${HOME}ディレクトリへの移動に失敗しました" || main_menu)
+    cd "${NODE_HOME}" || (echo_red "${NODE_HOME}ディレクトリへの移動に失敗しました" && main_menu)
 
     VKEY=$(sha256sum kes.vkey | cut -d ' ' -f 1)
     SKEY=$(sha256sum kes.skey | cut -d ' ' -f 1)
 
-    echo "kes.vkey >> ${VKEY}"
-    echo "kes.skey >> ${SKEY}"
+    echo -n "kes.vkey >> "
+    echo_yellow "${VKEY}"
+    echo
+    echo -n "kes.skey >> "
+    echo_yellow "${SKEY}"
+    echo
     echo
 
-    if readYn "ハッシュ値は一致していますか?"; then
+    if ! readYn "ハッシュ値は一致していますか?"; then
         echo_red "キャンセルしました"
-        return 1
+        main_menu
     fi
 
-    if use_coldkeys; then
+    if ! use_coldkeys; then
         rm "${NODE_HOME}/kes.vkey"
         rm "${NODE_HOME}/kes.skey"
-        return 1
+        main_menu
     fi
 
     while true; do
