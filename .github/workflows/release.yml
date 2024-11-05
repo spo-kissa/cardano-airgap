@@ -11,51 +11,18 @@ on:
 
 jobs:
   build:
-    name: Create Archive
+    name: Release
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkoout
+        uses: actions/checkout@v4
 
       - name: Get tag name
         run: echo "TAG_NAME=${{inputs.tag}}" >> $GITHUB_ENV
 
-      - run: echo "RELEASE_FILENAME=cardano-airgap.zip" >> $GITHUB_ENV
+      - name: PrintReleaseName
+        run: echo "RELEASE_FILENAME=cardano-airgap.zip" >> $GITHUB_ENV
 
-      - name: Create zip file
-        uses: thedoctor0/zip-release@main
-        with:
-          type: 'zip'
-          filename: ${{ env.RELEASE_FILENAME }}
-          exclusions: '*.git*'
-          directory: ./airgap/
-
-      - name: Create Release
-        id: create_release
-        uses: softprops/action-gh-release@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.KEY }}
-        with:
-          files: airgap/cardano-airgap.zip
-          tag_name: ${{ env.TAG_NAME }}
-
-      # - name: Put zip info to Release.txt
-      #   run: |
-      #     echo "\`\`\`json" >> Release.txt
-      #     echo "{" >> Release.txt
-      #     echo "  \"download_size\": $(stat --printf=%s cardano-airgap.zip)," >> Release.txt
-      #     echo "  \"download_sha256\": \"$(sha256sum cardano-airgap.zip | cut -d ' ' -f 1)\"," >> Release.txt
-      #     echo "  \"download_url\": \"${{ fromJSON(steps.upload-assets.outputs.assets)[0].browser_download_url }}\"," >> Release.txt
-      #     echo "  \"install_size\": $([[ "$(zipinfo -t cardano-airgap.zip)" =~ ^[0-9]+\ files,\ ([0-9]+)\ bytes.*$ ]]; echo ${BASH_REMATCH[1]})" >> Release.txt
-      #     echo "}" >> Release.txt
-      #     echo "\`\`\`" >> Release.txt
-          
-      # - name: Update body of release
-      #   uses: softprops/action-gh-release@v2
-      #   with:
-      #     tag_name: 'v1.0.0'
-      #     name: 'v1.0.0'
-      #     append_body: true
-      #     body_path: Release.txt
-      #     files: ${{ env.RELEASE_FILENAME }}
-          
+      - name: Run Release Script
+        run: ./release.sh
