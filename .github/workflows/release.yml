@@ -36,7 +36,7 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           cd ./release
-          gh release upload "${{ needs.release.outputs.tag }}" "airgap-${{ inputs.tag }}.tar.gz" 
-          gh release upload "${{ needs.release.outputs.tag }}" "airgap-usb-${{ inputs.tag }}.tar.gz"
-          gh release upload "${{ needs.release.outputs.tag }}" "airgap-checksum.txt" 
+          gh release upload "airgap-${{ inputs.tag }}.tar.gz" "airgap-${{ inputs.tag }}.tar.gz" 
+          gh release upload "airgap-usb-${{ inputs.tag }}.tar.gz" "airgap-usb-${{ inputs.tag }}.tar.gz"
+          gh release upload "airgap-checksum.txt" "airgap-checksum.txt" 
         
