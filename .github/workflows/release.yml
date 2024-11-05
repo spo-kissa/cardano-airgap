@@ -26,3 +26,7 @@ jobs:
 
       - name: Run Release Script
         run: ./release.sh ${{inputs.tag}}
+
+      - name: Check Release
+        run: ls -l
+        
