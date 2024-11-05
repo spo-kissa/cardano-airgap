@@ -28,5 +28,5 @@ jobs:
         run: ./release.sh ${{inputs.tag}}
 
       - name: Check Release
-        run: ls -l
+        run: ls -l ./release
         
