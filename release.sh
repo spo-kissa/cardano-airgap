@@ -1,6 +1,8 @@
 #!/bin/bash
 # shellcheck disable=SC2162
 
+VERSION=$1
+
 h1() {
     tput setaf 2 && echo "$1" && tput setaf 7
 }
@@ -16,11 +18,16 @@ generated() {
     tput setaf 5 && echo "$3" && tput setaf 7
 }
 
+
 echo
 tput setaf 5 && echo -n "ctool.sh リリースビルド生成ツール" && tput setaf 7
 echo
-echo 
-read -p "バージョン番号を入力してください: " VERSION
+echo
+CONFIRM=0
+if [ -z "$VERSION" ]; then
+    read -p "バージョン番号を入力してください: " VERSION
+    CONFIRM=1
+fi
 
 echo
 echo "バージョン番号は、"
@@ -29,8 +36,9 @@ h2 "${VERSION}"
 echo "-----------------"
 echo "で、よろしいですか？"
 echo
-
-read -n 1 press
+if [ $CONFIRM -eq "1" ]; then
+    read -n 1
+fi
 
 
 empty_file() {
