@@ -30,13 +30,14 @@ jobs:
       - name: Check Release
         run: ls -l ./release
 
+      - name: Create GitHub Release
+        run: |
+          gh release create '${{ inputs.tag }}' --repo '${{ github.repository }}' --notes ""
+
       - name: Publish Release
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          cd ./release
-          gh release upload "airgap-${{ inputs.tag }}.tar.gz" "airgap-${{ inputs.tag }}.tar.gz" 
-          gh release upload "airgap-usb-${{ inputs.tag }}.tar.gz" "airgap-usb-${{ inputs.tag }}.tar.gz"
-          gh release upload "airgap-checksum.txt" "airgap-checksum.txt" 
+          gh release upload '${{ inputs.tag }}' release/** --repo '${{ github.repository }}'
         
