@@ -25,4 +25,4 @@ jobs:
         run: echo "RELEASE_FILENAME=cardano-airgap.zip" >> $GITHUB_ENV
 
       - name: Run Release Script
-        run: ./release.sh
+        run: ./release.sh ${{inputs.tag}}
