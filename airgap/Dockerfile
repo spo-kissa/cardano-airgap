@@ -26,13 +26,13 @@ rm -rf /var/lib/apt/lists/* && \
 locale-gen en_US.UTF-8 && \
 
     mkdir -p ${HOME}/git/cardano-node2 && cd ${HOME}/git/cardano-node2 \
-&& wget https://github.com/IntersectMBO/cardano-node/releases/download/9.2.1/cardano-node-9.2.1-linux.tar.gz \
+&& wget --progress=dot:giga https://github.com/IntersectMBO/cardano-node/releases/download/9.2.1/cardano-node-9.2.1-linux.tar.gz \
 && tar zxvf cardano-node-9.2.1-linux.tar.gz ./bin/cardano-node ./bin/cardano-cli \
 && $(find ${HOME}/git/cardano-node2 -type f -name "cardano-cli") version \
 && $(find ${HOME}/git/cardano-node2 -type f -name "cardano-node") version \
 && cp $(find ${HOME}/git/cardano-node2 -type f -name "cardano-cli") /usr/local/bin/cardano-cli \
 && cardano-cli version \
-&& rm -rf ${HOME}\git \
+&& rm -rf ${HOME}/git \
 \
 && useradd -m -s /bin/bash cardano \
 && echo "cardano:airgap" | chpasswd \
