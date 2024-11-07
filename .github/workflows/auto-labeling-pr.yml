@@ -36,4 +36,4 @@ jobs:
         if: ${{ steps.label_name.outputs.label_name }}
         run: |
           number=$(echo $GITHUB_REF | sed -e 's/[^0-9]//g')
-          gh pr edit $number -add-label ${{ steps.label_name.outputs.label_name }}
+          gh pr edit $number --add-label ${{ steps.label_name.outputs.label_name }}
