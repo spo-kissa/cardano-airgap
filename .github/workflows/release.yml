@@ -51,6 +51,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ github.event.pull_request.title }}
-        run: |
-          gh release upload '${{ env.RELEASE_TAG }}' release/** --repo '${{ github.repository }}'
+        uses: softprops/action-gh-release@v2
+        with:
+          repository: ${{ github.repository }}
+          files: |
+            release/**
         
