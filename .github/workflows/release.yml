@@ -55,7 +55,6 @@ jobs:
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ github.event.pull_request.title }}
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
         with:
           tag_name: ${{ steps.release.outputs.tag_name }}
           repository: ${{ github.repository }}
