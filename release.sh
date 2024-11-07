@@ -2,31 +2,49 @@
 # shellcheck disable=SC2162
 
 VERSION=$1
+MANUAL=1;
+if [ -z "$VERSION" ]; then
+    MANUAL=0
+fi
 
 h1() {
-    tput setaf 2 && echo "$1" && tput setaf 7
+    if $MANUAL; then
+        tput setaf 2 && echo "$1" && tput setaf 7
+    else
+        echo "$1"
+    fi
 }
 
 h2() {
-    tput setaf 4 && echo "$1" && tput setaf 7
+    if $MANUAL; then
+        tput setaf 4 && echo "$1" && tput setaf 7
+    else
+        echo "$1"
+    fi
 }
 
 generated() {
     echo "Generated binary..."
-    tput setaf 5 && echo "$1" && tput setaf 7
-    tput setaf 5 && echo "$2" && tput setaf 7
-    tput setaf 5 && echo "$3" && tput setaf 7
+    if $MANUAL; then
+        tput setaf 5 && echo "$1" && tput setaf 7
+        tput setaf 5 && echo "$2" && tput setaf 7
+        tput setaf 5 && echo "$3" && tput setaf 7
+    else
+        echo "$1"
+        echo "$2"
+        echo "$3"
+    fi
 }
 
 
 echo
-tput setaf 5 && echo -n "ctool.sh リリースビルド生成ツール" && tput setaf 7
+if $MANUAL; then
+    tput setaf 5 && echo -n "ctool.sh リリースビルド生成ツール" && tput setaf 7
+fi
 echo
 echo
-CONFIRM=0
-if [ -z "$VERSION" ]; then
+if $MANUAL; then
     read -p "バージョン番号を入力してください: " VERSION
-    CONFIRM=1
 fi
 
 echo
@@ -36,18 +54,26 @@ h2 "${VERSION}"
 echo "-----------------"
 echo "で、よろしいですか？"
 echo
-if [ $CONFIRM -eq "1" ]; then
+if $MANUAL; then
     read -n 1
 fi
 
 
 empty_file() {
     if [ ! -s "$1" ]; then
-        tput setaf 2 && echo -n "${1}    [OK]" && tput setaf 7
+        if $MANUAL; then
+            tput setaf 2 && echo -n "${1}    [OK]" && tput setaf 7
+        else
+            echo -n "${1}   [OK]"
+        fi
         echo
         return 0
     else
-        tput setaf 1 && echo -n "${1}   [NG]" && tput setaf 7
+        if $MANUAL; then
+            tput setaf 1 && echo -n "${1}   [NG]" && tput setaf 7
+        else
+            echo -n "${1}   [NG]"
+        fi
         echo
         return 1
     fi
@@ -55,12 +81,20 @@ empty_file() {
 
 check() {
     if [ $? -eq 0 ]; then
-        tput setaf 2 && echo -n "    [OK]" && tput setaf 7
+        if $MANUAL; then
+            tput setaf 2 && echo -n "    [OK]" && tput setaf 7
+        else
+            echo -n "   [OK]"
+        fi
         echo
         return 0
     else
         echo
-        tput setaf 1 && echo -n "   [NG]" && tput setaf 7
+        if $MANUAL; then
+            tput setaf 1 && echo -n "   [NG]" && tput setaf 7
+        else
+            echo -n "   [NG]"
+        fi
         echo
         return 1
     fi
