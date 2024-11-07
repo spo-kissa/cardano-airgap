@@ -4,28 +4,28 @@ on:
   workflow_dispatch:
     inputs:
       tag:
+        description: "バージョン番号"
         required: true
+  pull_request:
+    types:
+      - closed
+    branches:
+      - main
 
-  # release:
-  #   types: [published]
+permissions:
+  contents: read
 
 jobs:
-  build:
-    name: Release
-    runs-on: ubuntu-latest
-
+  release:
     permissions:
       contents: write
+      pull-requests: write
+    if: github.event.pull_request.merged == true && startsWith(github.head_ref, 'release')
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkoout
         uses: actions/checkout@v4
-
-      - name: Get tag name
-        run: echo "TAG_NAME=${{ inputs.tag }}" >> $GITHUB_ENV
-
-      - name: PrintReleaseName
-        run: echo "RELEASE_FILENAME=cardano-airgap.zip" >> $GITHUB_ENV
 
       - name: Run Release Script
         run: ./release.sh ${{inputs.tag}}
@@ -33,11 +33,18 @@ jobs:
       - name: Check Release
         run: ls -l ./release
 
-      - name: Create GitHub Release
+      - name: Create Release Tag And Note
         env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release create '${{ inputs.tag }}' --repo '${{ github.repository }}' --notes ""
+          GITHUB_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.pull_request.title }}
+        uses: release-drafter/release-drafter@v6
+        with:
+          tag: ${{ env.RELEASE_TAG }}
+          name: Release ${{ env.RELEASE_TAG }}
+          version: ${{ env.RELEASE_TAG }}
+          publish: true
+#        run: |
+#          gh release create '${{ inputs.tag }}' --repo '${{ github.repository }}' --notes ""
 
       - name: Publish Release
         env:
