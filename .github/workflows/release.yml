@@ -14,15 +14,35 @@ jobs:
     name: Release
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: write
+
     steps:
       - name: Checkoout
         uses: actions/checkout@v4
 
       - name: Get tag name
-        run: echo "TAG_NAME=${{inputs.tag}}" >> $GITHUB_ENV
+        run: echo "TAG_NAME=${{ inputs.tag }}" >> $GITHUB_ENV
 
       - name: PrintReleaseName
         run: echo "RELEASE_FILENAME=cardano-airgap.zip" >> $GITHUB_ENV
 
       - name: Run Release Script
-        run: ./release.sh
+        run: ./release.sh ${{inputs.tag}}
+
+      - name: Check Release
+        run: ls -l ./release
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create '${{ inputs.tag }}' --repo '${{ github.repository }}' --notes ""
+
+      - name: Publish Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release upload '${{ inputs.tag }}' release/** --repo '${{ github.repository }}'
+        
