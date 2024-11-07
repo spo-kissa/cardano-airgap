@@ -28,6 +28,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Create Release Tag And Note
+        id: release
         env:
           GITHUB_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.event.pull_request.title }}
@@ -56,6 +57,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
+          tag_name: ${{ steps.release.outputs.tag_name }}
           repository: ${{ github.repository }}
           files: |
             release/**
