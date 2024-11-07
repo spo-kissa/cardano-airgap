@@ -27,13 +27,8 @@ jobs:
       - name: Checkoout
         uses: actions/checkout@v4
 
-      - name: Run Release Script
-        run: ./release.sh ${{inputs.tag}}
-
-      - name: Check Release
-        run: ls -l ./release
-
       - name: Create Release Tag And Note
+        id: release
         env:
           GITHUB_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.event.pull_request.title }}
@@ -46,10 +41,23 @@ jobs:
 #        run: |
 #          gh release create '${{ inputs.tag }}' --repo '${{ github.repository }}' --notes ""
 
+      - name: Run Release Script
+        env:
+          RELEASE_TAG: ${{ github.event.pull_request.title }}
+        run: ./release.sh ${{ env.RELEASE_TAG }}
+
+      - name: Check Release
+        run: ls -l ./release
+
       - name: Publish Release
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-        run: |
-          gh release upload '${{ inputs.tag }}' release/** --repo '${{ github.repository }}'
+          RELEASE_TAG: ${{ github.event.pull_request.title }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.release.outputs.tag_name }}
+          repository: ${{ github.repository }}
+          files: |
+            release/**
         
