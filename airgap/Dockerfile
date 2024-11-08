@@ -19,13 +19,13 @@ apt-get update \
     sudo \
     tmux \
     vim \
-    wget && \
-apt-get clean && \
-rm -rf /var/lib/apt/lists/* && \
+    wget \
+&& apt-get clean \
+&& rm -rf /var/lib/apt/lists/* \
 
-locale-gen en_US.UTF-8 && \
+&& locale-gen en_US.UTF-8 \
 
-    mkdir -p ${HOME}/git/cardano-node2 && cd ${HOME}/git/cardano-node2 \
+&& mkdir -p ${HOME}/git/cardano-node2 && cd ${HOME}/git/cardano-node2 \
 && wget --progress=dot:giga https://github.com/IntersectMBO/cardano-node/releases/download/9.2.1/cardano-node-9.2.1-linux.tar.gz \
 && tar zxvf cardano-node-9.2.1-linux.tar.gz ./bin/cardano-node ./bin/cardano-cli \
 && $(find ${HOME}/git/cardano-node2 -type f -name "cardano-cli") version \
@@ -49,24 +49,24 @@ COPY ./bin/lock-keys /home/cardano/bin/
 COPY ./bin/unlock-keys /home/cardano/bin/
 COPY ./bin/ctool.sh /home/cardano/bin/
 
-RUN chmod -R 755 /home/cardano/bin/* && \
-    chown -R cardano: /home/cardano/bin && \
-    chown -R cardano: /home/cardano/cnode && \
-    chown -R cardano: /home/cardano/cold-keys && \
-    chown -R cardano: /home/cardano/bin/* && \
-    chown -R cardano: /mnt/share/
+RUN chmod -R 755 /home/cardano/bin/* \
+ && chown -R cardano: /home/cardano/bin \
+ && chown -R cardano: /home/cardano/cnode \
+ && chown -R cardano: /home/cardano/cold-keys \
+ && chown -R cardano: /home/cardano/bin/* \
+ && chown -R cardano: /mnt/share/
 
 USER cardano
 WORKDIR /home/cardano/
 
-RUN echo export TERM=xterm-256color >> /home/cardano/.bashrc && \
-    echo export NODE_HOME=/home/cardano/cnode >> /home/cardano/.bashrc && \
-    echo export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH" >> /home/cardano/.bashrc && \
-    echo export NODE_NETWORK="--mainnet" >> /home/cardano/.bashrc && \
-    echo export CARDANO_NODE_NETWORK_ID=mainnet >> /home/cardano/.bashrc && \
-    echo export LANG=ja_JP.UTF-8 >> /home/cardano/.bashrc && \
-    echo export PATH=${PATH}:${HOME}/bin >> /home/cardano/.bashrc && \
-    echo alias ctool="ctool.sh" >> ${HOME}/.bashrc
+RUN echo export TERM=xterm-256color >> /home/cardano/.bashrc \
+ && echo export NODE_HOME=/home/cardano/cnode >> /home/cardano/.bashrc \
+ && echo export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH" >> /home/cardano/.bashrc \
+ && echo export NODE_NETWORK="--mainnet" >> /home/cardano/.bashrc \
+ && echo export CARDANO_NODE_NETWORK_ID=mainnet >> /home/cardano/.bashrc \
+ && echo export LANG=ja_JP.UTF-8 >> /home/cardano/.bashrc \
+ && echo export PATH=${PATH}:${HOME}/bin >> /home/cardano/.bashrc \
+ && echo alias ctool="ctool.sh" >> ${HOME}/.bashrc
 
 ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
