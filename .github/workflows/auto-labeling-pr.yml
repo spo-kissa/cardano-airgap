@@ -18,7 +18,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Get label name
         id: label_name
         run: |
@@ -30,7 +30,7 @@ jobs:
           else
             label_name=""
           fi
-          echo "::set-output name=label_name::$label_name"
+          echo "label_name=$label_name" >> "$GITHUB_OUTPUT"
 
       - name: Auto labeling
         if: ${{ steps.label_name.outputs.label_name }}
