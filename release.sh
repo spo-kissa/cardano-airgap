@@ -206,9 +206,12 @@ echo
 # Calculate file hashsum
 #
 
-shasum -a 256 "airgap-${VERSION}.tar.gz" > checksum.txt
-shasum -a 256 "airgap-usb-${VERSION}.tar.gz" >> checksum.txt
-shasum -a 256 "ctool-${CTOOL_VERSION}.sh.tar.gz" >> checksum.txt
+{
+shasum -a 256 "airgap-${VERSION}.tar.gz"
+shasum -a 256 "airgap-usb-${VERSION}.tar.gz"
+shasum -a 256 "ctool.sh"
+shasum -a 256 "ctool-${CTOOL_VERSION}.sh.tar.gz"
+} > checksum.txt
 
 #
 # Release resource
