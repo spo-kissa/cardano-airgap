@@ -8,7 +8,7 @@ if [ -z "$VERSION" ]; then
 fi
 
 h1() {
-    if $MANUAL; then
+    if [ $MANUAL -eq 0 ]; then
         tput setaf 2 && echo "$1" && tput setaf 7
     else
         echo "$1"
@@ -16,7 +16,7 @@ h1() {
 }
 
 h2() {
-    if $MANUAL; then
+    if [ $MANUAL -eq 0 ]; then
         tput setaf 4 && echo "$1" && tput setaf 7
     else
         echo "$1"
@@ -25,25 +25,27 @@ h2() {
 
 generated() {
     echo "Generated binary..."
-    if $MANUAL; then
+    if [ $MANUAL -eq 0 ]; then
         tput setaf 5 && echo "$1" && tput setaf 7
         tput setaf 5 && echo "$2" && tput setaf 7
         tput setaf 5 && echo "$3" && tput setaf 7
+        tput setaf 5 && echo "$4" && tput setaf 7
     else
         echo "$1"
         echo "$2"
         echo "$3"
+        echo "$4"
     fi
 }
 
 
 echo
-if $MANUAL; then
+if [ $MANUAL -eq 0 ]; then
     tput setaf 5 && echo -n "ctool.sh リリースビルド生成ツール" && tput setaf 7
 fi
 echo
 echo
-if $MANUAL; then
+if [ $MANUAL -eq 0 ]; then
     read -p "バージョン番号を入力してください: " VERSION
 fi
 
@@ -54,14 +56,14 @@ h2 "${VERSION}"
 echo "-----------------"
 echo "で、よろしいですか？"
 echo
-if $MANUAL; then
+if [ $MANUAL -eq 0 ]; then
     read -n 1
 fi
 
 
 empty_file() {
     if [ ! -s "$1" ]; then
-        if $MANUAL; then
+        if [ $MANUAL -eq 0 ]; then
             tput setaf 2 && echo -n "${1}    [OK]" && tput setaf 7
         else
             echo -n "${1}   [OK]"
@@ -69,7 +71,7 @@ empty_file() {
         echo
         return 0
     else
-        if $MANUAL; then
+        if [ $MANUAL -eq 0 ]; then
             tput setaf 1 && echo -n "${1}   [NG]" && tput setaf 7
         else
             echo -n "${1}   [NG]"
@@ -81,7 +83,7 @@ empty_file() {
 
 check() {
     if [ $? -eq 0 ]; then
-        if $MANUAL; then
+        if [ $MANUAL -eq 0 ]; then
             tput setaf 2 && echo -n "    [OK]" && tput setaf 7
         else
             echo -n "   [OK]"
@@ -90,7 +92,7 @@ check() {
         return 0
     else
         echo
-        if $MANUAL; then
+        if [ $MANUAL -eq 0 ]; then
             tput setaf 1 && echo -n "   [NG]" && tput setaf 7
         else
             echo -n "   [NG]"
@@ -142,7 +144,7 @@ touch ./airgap/cardano/.sudo_as_admin_successful && check || exit
 
 
 echo -n "Create tarball 'airgap-usb-${VERSION}.tar.gz'..."
-tar --exclude .DS_Store -czf airgap-usb-${VERSION}.tar.gz airgap && check || exit
+tar --exclude .DS_Store -czf "airgap-usb-${VERSION}.tar.gz" airgap && check || exit
 
 echo "done."
 echo
@@ -177,17 +179,36 @@ echo -n "Removing 'cardano' directory..."
 rm -r airgap/cardano && check || exit
 
 echo -n "Create tarball 'airgap-${VERSION}.tar.gz'..."
-tar --exclude .DS_Store -czf airgap-${VERSION}.tar.gz airgap && check || exit
+tar --exclude .DS_Store -czf "airgap-${VERSION}.tar.gz" airgap && check || exit
 
 echo "done."
 echo
+
+
+#
+#  ctool.sh Release
+#
+
+cp ../airgap/bin/ctool.sh ./ctool.sh && check || exit
+
+# Get ctool.sh version
+CTOOL_VERSION=$(cat ./ctool.sh | grep CTOOL_VERSION= | head -n 1)
+CTOOL_VERSION="${CTOOL_VERSION:14}"
+
+echo -n "Create tarball 'ctool-${CTOOL_VERSION}.sh.tar.gz'..."
+tar -czf "ctool-${CTOOL_VERSION}.sh.tar.gz" ctool.sh && check || exit
+
+echo "done."
+echo
+
 
 #
 # Calculate file hashsum
 #
 
-shasum -a 256 airgap-${VERSION}.tar.gz > airgap-checksum.txt
-shasum -a 256 airgap-usb-${VERSION}.tar.gz >> airgap-checksum.txt
+shasum -a 256 "airgap-${VERSION}.tar.gz" > checksum.txt
+shasum -a 256 "airgap-usb-${VERSION}.tar.gz" >> checksum.txt
+shasum -a 256 "ctool-${CTOOL_VERSION}.sh.tar.gz" >> checksum.txt
 
 #
 # Release resource
@@ -198,6 +219,6 @@ rm -r ./airgap && check || exit
 echo -n "Reaved 'release' directory..."
 cd .. && check || exit
 
-generated "airgap-${VERSION}.tar.gz" "airgap-usb-${VERSION}.tar.gz" "airgap-checksum.txt"
+generated "airgap-${VERSION}.tar.gz" "airgap-usb-${VERSION}.tar.gz" "ctool-${CTOOL_VERSION}.tar.gz" "checksum.txt"
 
 echo "All done."
