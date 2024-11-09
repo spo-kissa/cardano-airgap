@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CTOOL_VERSION=0.6.9
+CTOOL_VERSION=0.6.10
 
 SHARE_DIR="/mnt/share"
 
@@ -722,7 +722,7 @@ withdrawal_stake() {
         echo
         echo
         pressKeyEnter
-        return 1
+        wallet_menu
     fi
 
     cp ${SHARE_DIR}/tx.raw "$NODE_HOME/tx.raw"
@@ -730,7 +730,7 @@ withdrawal_stake() {
     
     if ! use_coldkeys; then
         rm "${NODE_HOME}/tx.raw"
-        return 1
+        wallet_menu
     fi
 
     cd "$NODE_HOME" || exit
@@ -749,7 +749,7 @@ withdrawal_stake() {
         echo
         echo
         pressKeyEnter
-        return 1
+        wallet_menu
     fi
 
     unuse_coldkeys
@@ -767,7 +767,7 @@ withdrawal_stake() {
     echo
     pressKeyEnter "このファイルをBPに転送し操作を続行してください"
 
-    main
+    wallet_menu
 }
 
 #
@@ -1124,7 +1124,7 @@ main_header() {
         gum style --foreground 4 --border double --align center --width 60 --margin "0 1" --padding "1 2" \
             'SPO JAPAN GUILD TOOL for Airgap' "v${CTOOL_VERSION}"
         
-        echo -n " {{ Bold \"CLL:\" }} {{ Color \"3\" \"\" \"${cli_version}\" }}" | gum format --type template
+        echo -n " {{ Bold \"CLL:\" }} {{ Color \"5\" \"\" \"${cli_version}\" }}" | gum format --type template
         echo -n " | {{ Bold \"Disk残容量:\" }} {{ Color \"3\" \"\" \"${available_disk}B\" }}" | gum format --type template
         echo -n " | {{ Bold \"Kyes:\" }} {{ Color \"3\" \"\" \"${has_keys}\" }}" | gum format --type template
         echo -n "${emoji_keys}" | gum format --type emoji
@@ -1134,7 +1134,7 @@ main_header() {
         echo
         echo -n " >> SPO JAPAN GUILD TOOL for Airgap " && echo_green "ver${CTOOL_VERSION}" && echo " <<"
         echo ' ---------------------------------------------------------------------'
-        echo -n " CLI: " && echo_yellow "${cli_version}" && echo -n " | Disk残容量: " && echo_yellow "${available_disk}B" && echo -n " | Keys: " && echo_yellow "${has_keys}"
+        echo -n " CLI: " && echo_magenta "${cli_version}" && echo -n " | Disk残容量: " && echo_yellow "${available_disk}B" && echo -n " | Keys: " && echo_yellow "${has_keys}"
         echo
         echo
     fi
