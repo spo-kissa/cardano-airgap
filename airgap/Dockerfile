@@ -48,7 +48,6 @@ EOF
 COPY ./bin/lock-keys /home/cardano/bin/
 COPY ./bin/unlock-keys /home/cardano/bin/
 COPY ./bin/ctool.sh /home/cardano/bin/
-COPY entrypoint.sh /entrypoint.sh
 
 RUN chmod -R 755 /home/cardano/bin/* \
  && chown -R cardano: /home/cardano/ \
