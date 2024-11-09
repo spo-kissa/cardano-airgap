@@ -1,5 +1,7 @@
 FROM ubuntu:jammy
 
+RUN mv /usr/bin/sh /usr/bin/sh_tmp && ln -s /usr/bin/bash /usr/bin/sh
+ENV DEBIAN_FRONTEND noninteractive
 RUN <<EOF
 apt-get update \
 && apt-get install -y gpg curl \
@@ -19,20 +21,17 @@ apt-get update \
     sudo \
     tmux \
     vim \
-    wget \
 && apt-get clean \
 && rm -rf /var/lib/apt/lists/* \
-
+\
 && locale-gen en_US.UTF-8 \
-
-&& mkdir -p ${HOME}/git/cardano-node2 && cd ${HOME}/git/cardano-node2 \
-&& wget --progress=dot:giga https://github.com/IntersectMBO/cardano-node/releases/download/9.2.1/cardano-node-9.2.1-linux.tar.gz \
-&& tar zxvf cardano-node-9.2.1-linux.tar.gz ./bin/cardano-node ./bin/cardano-cli \
-&& $(find ${HOME}/git/cardano-node2 -type f -name "cardano-cli") version \
-&& $(find ${HOME}/git/cardano-node2 -type f -name "cardano-node") version \
-&& cp $(find ${HOME}/git/cardano-node2 -type f -name "cardano-cli") /usr/local/bin/cardano-cli \
+\
+&& mkdir -p /home/cardano/git/cardano-node2 && cd /home/cardano/git/cardano-node2 \
+&& curl -SL https://github.com/IntersectMBO/cardano-node/releases/download/9.2.1/cardano-node-9.2.1-linux.tar.gz \
+ | tar -zxC /home/cardano/git/cardano-node2 ./bin/cardano-cli \
+&& mv $(find /home/cardano/git/cardano-node2 -type f -name "cardano-cli") /usr/local/bin/cardano-cli \
 && cardano-cli version \
-&& rm -rf ${HOME}/git \
+&& rm -rf /home/cardano/git \
 \
 && useradd -m -s /bin/bash cardano \
 && echo "cardano:airgap" | chpasswd \
@@ -42,36 +41,37 @@ apt-get update \
 && mkdir -p /home/cardano/cold-keys/ \
 && mkdir -p /home/cardano/bin/ \
 && mkdir -p /mnt/share \
-&& touch /home/cardano/.sudo_as_admin_successful
+&& touch /home/cardano/.sudo_as_admin_successful \
+&& echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 EOF
 
 COPY ./bin/lock-keys /home/cardano/bin/
 COPY ./bin/unlock-keys /home/cardano/bin/
 COPY ./bin/ctool.sh /home/cardano/bin/
+COPY entrypoint.sh /entrypoint.sh
 
 RUN chmod -R 755 /home/cardano/bin/* \
- && chown -R cardano: /home/cardano/bin \
- && chown -R cardano: /home/cardano/cnode \
- && chown -R cardano: /home/cardano/cold-keys \
- && chown -R cardano: /home/cardano/bin/* \
+ && chown -R cardano: /home/cardano/ \
  && chown -R cardano: /mnt/share/
 
 USER cardano
+ENV HOME=/home/cardano
 WORKDIR /home/cardano/
+ENV TERM=xterm-256color
 
-RUN echo export TERM=xterm-256color >> /home/cardano/.bashrc \
+RUN touch /home/cardano/.bashrc \
+ && echo export TERM=xterm-256color >> /home/cardano/.bashrc \
  && echo export NODE_HOME=/home/cardano/cnode >> /home/cardano/.bashrc \
  && echo export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH" >> /home/cardano/.bashrc \
  && echo export NODE_NETWORK="--mainnet" >> /home/cardano/.bashrc \
  && echo export CARDANO_NODE_NETWORK_ID=mainnet >> /home/cardano/.bashrc \
  && echo export LANG=ja_JP.UTF-8 >> /home/cardano/.bashrc \
- && echo export PATH=${PATH}:${HOME}/bin >> /home/cardano/.bashrc \
- && echo alias ctool="ctool.sh" >> ${HOME}/.bashrc
+ && echo export PATH=${PATH}:/home/cardano/bin >> /home/cardano/.bashrc \
+ && echo alias ctool="ctool.sh" >> /home/cardano/.bashrc
 
+RUN . /home/cardano/.bashrc
 ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
 ENV LC_ALL en_US.UTF-8
-RUN . /home/cardano/.bashrc
-
 
 ENTRYPOINT ["tail", "-F", "/dev/null"]
