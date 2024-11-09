@@ -1,5 +1,7 @@
 FROM ubuntu:jammy
 
+RUN mv /usr/bin/sh /usr/bin/sh_tmp && ln -s /usr/bin/bash /usr/bin/sh
+ENV DEBIAN_FRONTEND noninteractive
 RUN <<EOF
 apt-get update \
 && apt-get install -y gpg curl \
@@ -39,19 +41,23 @@ apt-get update \
 && mkdir -p /home/cardano/cold-keys/ \
 && mkdir -p /home/cardano/bin/ \
 && mkdir -p /mnt/share \
-&& touch /home/cardano/.sudo_as_admin_successful
+&& touch /home/cardano/.sudo_as_admin_successful \
+&& echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 EOF
 
 COPY ./bin/lock-keys /home/cardano/bin/
 COPY ./bin/unlock-keys /home/cardano/bin/
 COPY ./bin/ctool.sh /home/cardano/bin/
+COPY entrypoint.sh /entrypoint.sh
 
 RUN chmod -R 755 /home/cardano/bin/* \
  && chown -R cardano: /home/cardano/ \
  && chown -R cardano: /mnt/share/
 
 USER cardano
+ENV HOME=/home/cardano
 WORKDIR /home/cardano/
+ENV TERM=xterm-256color
 
 RUN touch /home/cardano/.bashrc \
  && echo export TERM=xterm-256color >> /home/cardano/.bashrc \
@@ -63,10 +69,9 @@ RUN touch /home/cardano/.bashrc \
  && echo export PATH=${PATH}:/home/cardano/bin >> /home/cardano/.bashrc \
  && echo alias ctool="ctool.sh" >> /home/cardano/.bashrc
 
+RUN . /home/cardano/.bashrc
 ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
 ENV LC_ALL en_US.UTF-8
-RUN . /home/cardano/.bashrc
-
 
 ENTRYPOINT ["tail", "-F", "/dev/null"]
