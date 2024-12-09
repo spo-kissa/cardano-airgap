@@ -27,7 +27,7 @@ apt-get update \
 && locale-gen en_US.UTF-8 \
 \
 && mkdir -p /home/cardano/git/cardano-node2 && cd /home/cardano/git/cardano-node2 \
-&& curl -SL https://github.com/IntersectMBO/cardano-node/releases/download/9.2.1/cardano-node-9.2.1-linux.tar.gz \
+&& curl -SL https://github.com/IntersectMBO/cardano-node/releases/download/10.1.3/cardano-node-10.1.3-linux.tar.gz \
  | tar -zxC /home/cardano/git/cardano-node2 ./bin/cardano-cli \
 && mv $(find /home/cardano/git/cardano-node2 -type f -name "cardano-cli") /usr/local/bin/cardano-cli \
 && cardano-cli version \
