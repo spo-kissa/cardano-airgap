@@ -1,6 +1,9 @@
 #!/bin/bash
+#set -e
+set -u
+#set -x
 
-CTOOL_VERSION=0.6.9
+CTOOL_VERSION=0.6.44
 
 SHARE_DIR="/mnt/share"
 
@@ -134,24 +137,41 @@ check_cli_update() {
 #
 check_coldkeys_exists() {
     echo "コールドキーをチェックしています..."
+    echo
     keys_is_installed
     # shellcheck disable=SC2181
     if [ $? -ne 0 ]; then
         echo "暗号化済みコールドキーをチェックしています..."
+        echo
         encrypted_keys_exists
         if [ $? -ne 0 ]; then
-            echo "コールドキーがインポートされていません。"
-            if readYn "今すぐインポートをおこないますか？"; then
+            echo_red "コールドキーがインポートされていません。"
+            echo
+            echo
+
+            choice=$(gum choose --limit 1 --height 6 --header "===== 初期化メニュー =====" "1. コールドキーをインポートする" "2. 新規ノードを立ち上げる" "h. メインメニュー")
+            echo " $choice"
+            choice=${choice:0:1}
+            case $choice in
+            1 )
                 install_coldkeys
                 return $?
-            fi
+                ;;
+            2 )
+                generate_new_node
+                return $?
+                ;;
+            h )
+                return 0
+                ;;
+            esac
         else
             return 0
         fi
     else
         return 0
     fi
-    return 1
+    return 0
 }
 
 #
@@ -164,6 +184,12 @@ get_version_number() {
     fi
     echo "$VERSION" | awk -F. '{printf "%2d%02d%02d", $1,$2,$3}' | xargs echo | bc
 }
+
+is_integer() {
+    [[ -z "${1}" ]] && return 1
+    printf "%d" "${1}" >/dev/null 2>&1
+}
+
 
 echo_red() {
     tput setaf 1 && echo -n "$1" && tput setaf 7
@@ -188,6 +214,7 @@ echo_magenta() {
 
 main() {
     check_self_update
+    check_network
     check_coldkeys_exists
     main_menu
 }
@@ -237,6 +264,9 @@ existsGum() {
 }
 
 
+#
+# lib: キーのファイルパスの配列を返します
+#
 get_keys() {
     keys=(
         '/cold-keys/node.counter'
@@ -250,6 +280,84 @@ get_keys() {
         '/cnode/stake.vkey'
     )
     echo "${keys[@]}"
+}
+
+
+#
+# ターゲットネットワークチェックおよび初期化
+#
+# shellcheck disable=SC1091
+check_network() {
+
+    if [ -f "$HOME/.cnoderc" ]; then
+        source "$HOME/.cnoderc"
+    fi
+
+    if [ ! -v NODE_CONFIG ] || [ -z "$NODE_CONFIG" ]; then
+        echo_red "NODE_CONFIG 環境変数が定義されていません"
+        echo
+    else
+        if [ ! -v NODE_NETWORK ] || [ -z "$NODE_NETWORK" ]; then
+            echo_red "NODE_NETWORK 環境変数が定義されていません"
+            echo
+        else
+            if [ ! -v CARDANO_NODE_NETWORK_ID ] || [ -z "$CARDANO_NODE_NETWORK_ID" ]; then
+                echo_red "CARDANO_NODE_NETWORK_ID 環境変数が定義されていません"
+                echo
+            else
+                return 0
+            fi
+        fi
+    fi
+
+    echo
+    echo
+    network=$(gum choose --limit 1 --height 6 --header "接続するネットワークを選択してください (通常はメインネットを選択してください)" "1. メインネット" "2. テストネット(Preview)" "3. テストネット(PreProd)")
+    echo " $network"
+    network=${network:0:1}
+    case $network in
+        1 )
+            name="メインネット"
+            ;;
+        2 )
+            name="テストネット(Preview)"
+            ;;
+        3 )
+            name="テストネット(PreProd)"
+            ;;
+    esac
+
+    if ! readYn "「${name}」でよろしいですか？"; then
+        return 1
+    fi
+
+    {
+        echo "if [ ~/.cnoderc ]; then"
+        echo "  source ~/.cnoderc"
+        echo "fi"
+    } >> "$HOME/.bashrc"
+
+    case $network in
+        1 )
+            echo export NODE_CONFIG=mainnet >> "$HOME/.cnoderc"
+            echo export NODE_NETWORK='"--mainnet"' >> "$HOME/.cnoderc"
+            echo export CARDANO_NODE_NETWORK_ID=mainnet >> "$HOME/.cnoderc"
+            ;;
+        2 )
+            echo export NODE_CONFIG=preview >> "$HOME/.cnoderc"
+            echo export NODE_NETWORK='"--testnet-magic 2"' >> "$HOME/.cnoderc"
+            echo export CARDANO_NODE_NETWORK_ID=2 >> "$HOME/.cnoderc"
+            ;;
+        3 )
+            echo export NODE_CONFIG=preprod >> "$HOME/.cnoderc"
+            echo export NODE_NETWORK='"--testnet-magic 1"' >> "$HOME/.cnoderc"
+            echo export CARDANO_NODE_NETWORK_ID=1 >> "$HOME/.cnoderc"
+            ;;
+    esac
+
+    source "$HOME/.cnoderc"
+
+    return 0
 }
 
 
@@ -286,6 +394,652 @@ encrypted_keys_exists() {
     fi
 
     return 1
+}
+
+
+#
+# 新しいノードの構築
+#
+generate_new_node() {
+
+    create_pool_cert_script
+
+    # コールドキーの作成
+    echo_green "コールドキーとカウンターファイルを生成しています..."
+    echo
+    echo
+    cd "$HOME/cold-keys"
+
+    if ! cardano-cli conway node key-gen \
+        --cold-verification-key-file node.vkey \
+        --cold-signing-key-file node.skey \
+        --operational-certificate-issue-counter node.counter; then
+
+        echo_red "コールドキーとカウンターファイルの生成に失敗しました"
+        echo
+        return 1
+    fi
+
+    chmod 400 node.vkey
+    chmod 400 node.skey
+
+    echo_green "コールドキーとカウンターファイルを生成しました"
+    echo
+    echo
+
+    sleep 1
+
+    cd "$NODE_HOME"
+
+    while :
+    do
+
+        echo
+        echo_yellow "kes.skey と kes.vkey を BP から share ディレクトリにコピーしてください"
+        echo
+        echo
+
+        kes_key="0"
+        while [ "$kes_key" -ne "1" ]
+        do
+            read -r -p "コピーが出来たらEnterキーを押してください"
+
+            if [ ! -f $SHARE_DIR/kes.skey ]; then
+                echo_red "kes.skey が share ディレクトリに見つかりません"
+                echo
+                kes_key=0
+            else
+                kes_key=1
+            fi
+            if [ ! -f $SHARE_DIR/kes.vkey ]; then
+                echo_red "kes.vkey が share ディレクトリに見つかりません"
+                echo
+                kes_key=0
+            else
+                kes_key=1
+            fi
+        done
+
+        # kesファイルをコピー
+        cp $SHARE_DIR/kes.skey "$NODE_HOME/kes.skey"
+        cp $SHARE_DIR/kes.vkey "$NODE_HOME/kes.vkey"
+
+        SHA256=$(sha256sum kes.vkey | cut -d ' ' -f 1);
+
+        echo_magenta "kes.vkey のハッシュ値がBPと一致していることを確認してください"
+        echo
+        echo
+        echo -n "kes.vkey >> "
+        echo_yellow "$SHA256"
+        echo
+        echo
+        if readYn "ハッシュ値は一致していますか？"; then
+            break;
+        fi
+        echo_red "再度 kes.vkey/kes.skey ファイルを BP から share ディレクトリに転送し直してください"
+        echo
+        echo
+    done
+
+
+    # 運用証明書を発行
+    echo_green "運用証明書を発行します..."
+    echo
+    echo
+    while :
+    do
+        echo_magenta "BPで表示された startKesPeriod の値を入力してください"
+        echo
+        echo
+        read -r -p "半角数字で入力しEnterを押してください >" StartKesPeriod
+
+        echo
+        echo -n "startKesPeriodの値: "
+        echo_green "${StartKesPeriod}"
+        echo
+        echo
+        if readYn "上記で合っていますか？"; then
+            break
+        fi
+    done
+
+    echo "運用証明書を発行しています..."
+    echo
+
+    if ! cardano-cli conway node issue-op-cert \
+        --kes-verification-key-file kes.vkey \
+        --cold-signing-key-file "$HOME/cold-keys/node.skey" \
+        --operational-certificate-issue-counter "$HOME/cold-keys/node.counter" \
+        --kes-period "${StartKesPeriod}" \
+        --out-file node.cert; then
+
+        echo_red "運用証明書の発行に失敗しました"
+        echo
+        echo
+        return 1
+    fi
+
+    cp node.cert "${SHARE_DIR}/node.cert"
+
+    echo_green "node.cert ファイルを share ディレクトリに出力しました"
+    echo
+    echo_magenta "このファイルを BP の cnode ディレクトリにコピーしてください"
+    echo
+    echo_magenta "その後 node.cert ファイルのハッシュ値が一致しているか確認してください"
+    echo
+    echo
+    SHA256=$(sha256sum node.cert | cut -d ' ' -f 1)
+    echo -n "node.cert >> "
+    echo_yellow "$SHA256"
+    echo
+    echo
+    read -r -p "BPとハッシュ値が一致したらEnterキーを押してください"
+    echo
+    echo
+
+
+    # 支払アドレスキーの作成
+    echo
+    echo_green "支払アドレスキーを作成しています..."
+    echo
+
+    if ! cardano-cli conway address key-gen \
+        --verification-key-file payment.vkey \
+        --signing-key-file payment.skey; then
+
+        echo_red "支払アドレスキーの作成に失敗しました"
+        echo
+        return 1
+    fi
+
+    # ステークアドレスキーの作成
+    echo
+    echo_green "ステークアドレスキーを作成しています..."
+    echo
+
+    if ! cardano-cli conway stake-address key-gen \
+        --verification-key-file stake.vkey \
+        --signing-key-file stake.skey; then
+
+        echo_red "ステークアドレスキーの作成に失敗しました"
+        echo
+        return 1
+    fi
+
+    # ステークアドレスの作成
+    echo
+    echo_green "ステークアドレスを作成しています..."
+    echo
+
+    if ! cardano-cli conway stake-address build \
+        --stake-verification-key-file stake.vkey \
+        --out-file stake.addr \
+        "$NODE_NETWORK"; then
+
+        echo_red "ステークアドレスの作成に失敗しました"
+        echo
+        return 1
+    fi
+
+    # 支払用アドレスの作成
+    echo
+    echo_green "支払用アドレスを作成しています..."
+    echo
+
+    if ! cardano-cli conway address build \
+        --payment-verification-key-file payment.vkey \
+        --stake-verification-key-file stake.vkey \
+        --out-file payment.addr \
+        "$NODE_NETWORK"; then
+
+        echo_red "支払用アドレスの作成に失敗しました"
+        echo
+        return 1
+    fi
+
+    chmod 400 payment.vkey
+    chmod 400 payment.skey
+    chmod 400 stake.vkey
+    chmod 400 stake.skey
+    chmod 400 stake.addr
+    chmod 400 payment.addr
+
+    cp payment.addr $SHARE_DIR/payment.addr
+    cp stake.addr $SHARE_DIR/stake.addr
+
+    echo
+    echo_green "payment.addrとstake.addrファイルをshareディレクトリに出力しました"
+    echo
+    echo_magenta "これらのファイルをBPのcnodeディレクトリにコピーしてください"
+    echo
+    echo
+    echo_magenta "BP側の指示に従い、支払い用アドレスへの入金などを行なってください"
+    echo
+    echo
+    read -r -p "BP側の操作が完了したらEnterキーを押して次の手順へ進みます"
+
+
+    ## ステークアドレスの登録
+    # ステーク証明書を作成
+    echo_green "ステーク証明書を作成しています..."
+    echo
+    echo
+    
+    if ! cardano-cli conway stake-address registration-certificate \
+            --stake-verification-key-file stake.vkey \
+            --out-file stake.cert; then
+
+        echo_red "ステーク証明書の作成に失敗しました"
+        echo
+        read -r
+        return 1
+    fi
+
+    echo_green "stake.certファイルをshareディレクトリに出力しました"
+    echo
+    echo_magenta "stake.certファイルをBPのcnodeディレクトリにコピーしてください"
+    echo
+    echo
+    echo_magenta "BP側の指示に従い、ステークアドレスを登録するトランザクションファイルを作成してください"
+    echo
+
+    while :
+    do
+        echo_magenta "BPからtx.rawファイルをshareディレクトリにコピーしてください"
+        echo
+        echo
+        echo_magenta "コピーが出来たらEnterキーを押してください"
+        read -r -p " > "
+
+        echo
+        echo
+        if [ -f "${SHARE_DIR}/tx.raw" ]; then
+            break
+        fi
+        echo_red "shareディレクトリにtx.rawファイルが見つかりませんでした"
+        echo
+        echo
+    done
+
+    cp "${SHARE_DIR}/tx.raw" "${NODE_HOME}/tx.raw"
+
+    # ステークアドレスの登録(トランザクションファイルへの署名)
+    if ! cardano-cli conway transaction sign \
+        --tx-body-file tx.raw \
+        --signing-key-file payment.skey \
+        --signing-key-file stake.skey \
+        "${NODE_NETWORK}" \
+        --out-file tx.signed; then
+
+        echo_red "トランザクションファイルへの署名に失敗しました"
+        echo
+        return 1
+    fi
+
+    echo_green "tx.signedファイルをshareディレクトリに出力しました"
+    echo
+    echo
+    echo_magenta "tx.signedファイルをBPのcnodeにコピーしてください"
+    echo
+    echo
+    echo_magenta "BPでトランザクションの送信が完了したらEnterキーを押してください"
+    read -r -p " > "
+    echo
+    echo
+    echo_green "プール登録証明書の作成を行います"
+    echo
+    while :
+    do
+        echo
+        echo_magenta "BPからvrf.vkeyとpoolMetaDataHash.txtをshareディレクトリにコピーしてください"
+        echo
+        echo
+        echo_magenta "コピーが出来たらEnterキーを押してください"
+        read -r -p " > "
+        echo
+        echo
+        FOUND=0
+        if [ -f "${SHARE_DIR}/vrf.vkey" ]; then
+            FOUND=$((FOUND++))
+        else
+            echo_red "shareディレクトリにvrf.vkeyが見つかりませんでした"
+            echo
+            echo
+        fi
+        if [ -f "${SHARE_DIR}/poolMetaDataHash.txt" ]; then
+            FOUND=$((FOUND++))
+        else
+            echo_red "shareディレクトリにpoolMetaDataHash.txtが見つかりませんでした"
+            echo
+            echo
+        fi
+
+        if [ $FOUND -eq "2" ]; then
+            
+            # NODE_HOMEへコピー
+            cp "${SHARE_DIR}/vrf.vkey" "${NODE_HOME}/vrf.vkey"
+            cp "${SHARE_DIR}/poolMetaDataHash.txt" "${NODE_HOME}/poolMetaDataHash.txt"
+
+            SHA256=$(sha256sum vrf.vkey | cut -d ' ' -f 1)
+            echo_magenta "vrf.keyのハッシュ値が一致していることを確認してください"
+            echo
+            echo
+            echo -n "vrf.vkey >> "
+            echo_green "${SHA256}"
+            echo
+            echo
+            if readYn "ハッシュ値は一致していますか?"; then
+                break
+            fi
+        fi
+    done
+
+    create_pool_cert_script
+
+    read -r 
+}
+
+
+create_pool_cert_script()
+{
+    # pool.certを作成
+    while :
+    do
+        echo_magenta "BPで表示されたminPoolCost(最低固定費)を入力してEnterを押してください"
+        read -r -p "[170000000] > " MinPoolCost
+        echo
+        if is_integer "$MinPoolCost"; then
+            MinPoolCostAda=$(echo "$MinPoolCost / 1000000" | bc)
+            if readYn "最低固定費は ${MinPoolCostAda}ADA (${MinPoolCost}lovelace)であっていますか?"; then
+                break
+            fi
+        else
+            echo_red "最低固定費に数値以外の値が入力されました"
+            echo
+        fi
+    done
+
+
+    while :
+    do
+        echo_magenta "誓約数(ADA)を入力してEnterキーを押してください"
+        read -r -p "[100] > " POOLPLEDGE
+        echo
+        if is_integer "$POOLPLEDGE"; then
+            if [ "$POOLPLEDGE" -lt 0 ]; then
+                echo_red "誓約数には0ADA以上の値を指定してください"
+                echo
+            else
+                break
+            fi
+        else
+            echo_red "誓約数に数値以外の値が入力されました"
+            echo
+        fi
+    done
+
+    while :
+    do
+        echo_magenta "固定手数料(ADA)を入力してEnterキーを押してください"
+        read -r -p "[170] > " POOLCOST
+        echo
+        if is_integer "$POOLCOST"; then
+            if [ "${POOLCOST}" -lt "${MinPoolCostAda}" ]; then
+                echo_red "固定手数料には最低固定費(${MinPoolCostAda}ADA)以上の値を指定してください"
+                echo
+            else
+                break
+            fi
+        else
+            echo_red "固定手数料に数値以外の値が入力されました"
+            echo
+        fi
+    done
+
+    while :
+    do
+        echo_magenta "変動手数料(%)を入力してEnterキーを押してください"
+        read -r -p "[5] > " POOLMARGIN
+        echo
+        if is_integer "$POOLMARGIN"; then
+            if [ "${POOLMARGIN}" -lt 0 ]; then
+                echo_red "変動手数料には0以上の値を指定してください"
+                echo
+            elif [ "${POOLMARGIN}" -ge 100 ]; then
+                echo_red "変動手数料に100%以上の値を指定することは出来ません"
+                echo
+            else
+                POOLMARGIN=$(echo "${POOLMARGIN} / 100" | bc)
+                break
+            fi
+        else
+            echo_red "変動手数料に数値以外の値が入力されました"
+            echo
+        fi
+    done
+
+
+    echo_green "リレーの情報を入力します"
+    echo
+    echo
+    menu=$(gum choose --limit 1 --height 3 --header "===== リレー情報の指定方法を選択してください =====" "1. IPv4アドレス方式" "2. DNS方式" "3. ラウンドロビンDNSベース SRV DNS record")
+    echo " $menu"
+    menu=${menu:0:1}
+    case $menu in
+        1 )
+            # IPv4アドレス方式
+            ARG="pool-relay-ipv4"
+            COUNT=0
+            while :
+            do
+                ((COUNT++))
+                echo_magenta "${COUNT}つ目のリレーノードのグローバルIPアドレスを入力してください"
+                echo
+                read -r -p " > " IP
+                echo_magenta "${COUNT}つ目のリレーノードのポート番号を入力してください"
+                echo
+                read -r -p " > " PORT
+                echo 
+                HOSTS[COUNT]="$IP $PORT"
+
+                if ! readYn "さらにリレーノードを追加しますか？"; then
+                    break
+                fi
+            done
+            ;;
+        2 )
+            # DNS方式
+            ARG="single-host-pool-relay"
+            COUNT=0
+            while :
+            do
+                ((COUNT++))
+                echo_magenta "${COUNT}つ目のリレーノードのドメイン名を入力してください"
+                echo
+                read -r -p " > " DNS
+                echo_magenta "${COUNT}つ目のリレーノードのポート番号を入力してください"
+                echo
+                read -r -p " > " PORT
+                echo
+                HOSTS[COUNT]="$DNS $PORT"
+
+                if ! readYn "さらにリレーノードを追加しますか？"; then
+                    break
+                fi
+            done
+            ;;
+        3 )
+            # ラウンドロビンDNS
+            ARG="multi-host-pool-relay"
+            echo_magenta "リレーのドメイン名を入力してください"
+            echo
+            read -r -p " > " DNS
+            echo_magenta "リレーのポート番号を入力してください"
+            echo
+            read -r -p " > " PORT
+            echo
+            HOSTS[0]="$DNS $PORT"
+            ;;
+    esac
+    
+    echo
+    echo_magenta "メタデータURLを入力してEnterキーを押してください"
+    echo
+    read -r -p " > " METADATA_URL
+    echo
+
+
+    echo
+    echo_green "プール運用証明書を発行するためのスクリプトを書き出しています..."
+    echo
+
+    {
+        echo "cd $NODE_HOME"
+        echo "cardano-cli conway stake-pool registration-certificate \\"
+        echo "    --cold-verification-key-file $HOME/cold-keys/node.vkey \\"
+        echo "    --vrf-verification-key-file vrf.vkey \\"
+        echo "    --pool-pledge ${POOLPLEDGE}000000 \\"
+        echo "    --pool-cost ${POOLCOST}000000 \\"
+        echo "    --pool-margin ${POOLMARGIN} \\"
+        echo "    --pool-reward-account-verification-key-file stake.vkey \\"
+        echo "    --pool-owner-stake-verification-key-file stake.vkey \\"
+        echo "    ${NODE_NETWORK} \\"
+    } > poolcert.sh
+
+    for item in "${HOSTS[@]}"
+    do
+        TARGET=$(echo "$item" | cut -d ' ' -f 1)
+        PORT=$(echo "$item" | cut -d ' ' -f 2)
+
+        echo "    --${ARG} ${TARGET} \\" >> poolcert.sh
+        echo "    --pool-relay-port ${PORT} \\" >> poolcert.sh
+    done
+
+    METADATA_HASH=$(cat poolMetaDataHash.txt)
+    {
+        echo "    --metadata-url ${METADATA_URL} \\"
+        echo "    --metadata-hash ${METADATA_HASH} \\"
+        echo "    --out-file pool.cert"
+    } >> poolcert.sh
+
+
+    echo
+    echo_green "プール運用証明書を発行するためのスクリプトの書き出しが完了しました"
+    echo
+    echo
+    echo
+
+    # shellcheck disable=SC1091
+    source poolcert.sh
+
+    if [ ! -f pool.cert ]; then
+        echo_red "プール運用証明書の発行に失敗しました"
+        echo
+        echo
+        return 1
+    fi
+
+
+    echo
+    echo_green "ステークプールに誓約するためのファイルを出力します"
+    echo
+    echo
+
+    if ! cardano-cli conway stake-address stake-delegation-certificate \
+        --stake-verification-key-file stake.vkey \
+        --cold-verification-key-file "$HOME/cold-keys/node.vkey" \
+        --out-file deleg.cert; then
+    
+        echo_red "ステークプール誓約用のファイルの作成に失敗しました"
+        echo
+        echo
+        return 1
+    fi
+
+    cp pool.cert "$SHARE_DIR/pool.cert"
+    cp deleg.cert "$SHARE_DIR/deleg.cert"
+
+
+    echo_magenta "shareディレクトリにpool.certとdeleg.certファイルを出力しました"
+    echo
+    echo
+    echo_magenta "この2つのファイルをBPのcnodeディレクトリにコピーしてください"
+    echo
+    echo
+    echo_magenta "BPでトランザクションファイルが生成されたらEnterキーを押してください"
+    read -r -p "> "
+    echo
+    echo
+    echo_magenta "BPからtx.rawファイルをshareディレクトリにコピーしてください"
+    echo
+    echo
+    echo_magenta "コピーが出来たらEnterキーを押してください"
+    read -r -p "> "
+    echo
+    echo
+    echo_green "トランザクションファイルに署名しています..."
+    echo
+    echo
+
+    if ! cardano-cli conway transaction sign \
+        --tx-body-file tx.raw \
+        --signing-key-file payment.skey \
+        --signing-key-file "$HOME/cold-keys/node.skey" \
+        --signing-key-file stake.skey \
+        "$NODE_NETWORK" \
+        --out-file tx.signed; then
+
+        echo_red "トランザクションファイルへの署名に失敗しました"
+        echo
+        echo
+        return 1
+    fi
+
+    cp tx.signed "$SHARE_DIR/tx.signed"
+
+    echo_green "秘密鍵をロックしています..."
+    echo
+    echo
+    chmod a-rwx "$HOME/cold-keys"
+
+
+    echo_magenta "署名済みトランザクションファイルtx.signedファイルをshareディレクトリに出力しました"
+    echo
+    echo
+    echo_magenta "BPのcnodeディレクトリにコピーしてトランザクションの送信処理を行なってください"
+    echo
+    echo
+    echo_magenta "BPにてトランザクションの送信が完了したらEnterキーを押してください"
+    read -r -p "> "
+
+
+    echo_green "ステークプールIDの出力を行なっています..."
+
+    chmod u+rwx "$HOME/cold-keys"
+
+    cardano-cli conway stake-pool id --cold-verification-key-file "$HOME/cold-keys/node.vkey" --output-format bech32 --out-file pool.id-bech32
+    cardano-cli conway stake-pool id --cold-verification-key-file "$HOME/cold-keys/node.vkey" --output-format hex --out-file pool.id
+    
+    chmod a-rwx "$HOME/cold-keys"
+
+
+    echo_magenta "shareディレクトリにpool.id-bech32とpool.idファイルを出力しました"
+    echo
+    echo
+    echo_magenta "この2つのファイルをBPのcnodeディレクトリにコピーしてください"
+    echo
+    echo
+    echo_magenta "コピーが完了しプールがブロックチェーンに登録されたことを確認したらEnterキーを押してください"
+    read -r -p "> "
+    
+    echo
+
+
+    if readYn "キーを暗号化しますか？"; then
+        encrypt_keys
+    fi
+
+    return 0;
 }
 
 
@@ -493,7 +1247,7 @@ reflesh_kes() {
         echo "ブロックプロデューサーノードのカウンター番号情報に表示されている、"
         echo "今回更新のカウンター番号を入力してください。"
         
-        read -p "半角数字で入力してEnterキーを押してください > " counter
+        read -r -p "半角数字で入力してEnterキーを押してください > " counter
         echo
 
         echo "カウンター番号: '${counter}'"
@@ -548,7 +1302,7 @@ reflesh_kes() {
         echo "現在のstartKesPeriod の値を入力してください。"
 
         
-        read -p "半角数字で入力してEnterキーを押してください > " period
+        read -r -p "半角数字で入力してEnterキーを押してください > " period
         echo
 
         echo "startKesPeriod: '${period}'"
@@ -1107,6 +1861,8 @@ main_header() {
 
     available_disk=$(df -h /usr | awk 'NR==2 {print $4}')
 
+    network=${CARDANO_NODE_NETWORK_ID}
+
     has_keys="NO"
     emoji_keys=""
     
@@ -1124,6 +1880,7 @@ main_header() {
         gum style --foreground 4 --border double --align center --width 60 --margin "0 1" --padding "1 2" \
             'SPO JAPAN GUILD TOOL for Airgap' "v${CTOOL_VERSION}"
         
+        echo -n " {{ Bold \"Network:\" }} {{ Color \"2\" \"\" \"-${network}-\" }}" | gum format --type template
         echo -n " {{ Bold \"CLL:\" }} {{ Color \"3\" \"\" \"${cli_version}\" }}" | gum format --type template
         echo -n " | {{ Bold \"Disk残容量:\" }} {{ Color \"3\" \"\" \"${available_disk}B\" }}" | gum format --type template
         echo -n " | {{ Bold \"Kyes:\" }} {{ Color \"3\" \"\" \"${has_keys}\" }}" | gum format --type template
