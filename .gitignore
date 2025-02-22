@@ -1,5 +1,6 @@
 airgap/.Dockerfile.swp
 release/
+releases/
 .DS_Store
 .idea/cardano-airgap.iml
 .idea/modules.xml
