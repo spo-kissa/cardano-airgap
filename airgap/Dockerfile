@@ -27,7 +27,7 @@ apt-get update \
 && locale-gen en_US.UTF-8 \
 \
 && mkdir -p /home/cardano/git/cardano-node2 && cd /home/cardano/git/cardano-node2 \
-&& curl -SL https://github.com/IntersectMBO/cardano-node/releases/download/10.1.4/cardano-node-10.1.4-linux.tar.gz \
+&& curl -SL https://github.com/IntersectMBO/cardano-node/releases/download/10.4.1/cardano-node-10.4.1-linux.tar.gz \
  | tar -zxC /home/cardano/git/cardano-node2 ./bin/cardano-cli \
 && mv $(find /home/cardano/git/cardano-node2 -type f -name "cardano-cli") /usr/local/bin/cardano-cli \
 && cardano-cli version \
@@ -59,6 +59,7 @@ WORKDIR /home/cardano/
 ENV TERM=xterm-256color
 
 RUN touch /home/cardano/.bashrc \
+ && echo "PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '" >> /home/cardano/.bashrc \
  && echo export TERM=xterm-256color >> /home/cardano/.bashrc \
  && echo export NODE_HOME=/home/cardano/cnode >> /home/cardano/.bashrc \
  && echo export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH" >> /home/cardano/.bashrc \
