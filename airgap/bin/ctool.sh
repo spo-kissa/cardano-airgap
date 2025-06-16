@@ -1783,7 +1783,7 @@ delete_coldkeys() {
 
     unlock_keys
 
-    if ! rm ./cold-keys/node.* ./cnode/payment.{addr,skey,vkey} ./cnode/stake.{addr,skey,vkey}; then
+    if ! rm -f ./cold-keys/node.* ./cnode/payment.{addr,skey,vkey} ./cnode/stake.{addr,skey,vkey}; then
         echo
         echo_red "コールドキーの削除に失敗しました"
         echo
