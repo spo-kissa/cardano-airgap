@@ -3,7 +3,7 @@
 set -u
 #set -x
 
-CTOOL_VERSION=0.6.44
+CTOOL_VERSION=0.6.50
 
 
 SHARE_DIR="/mnt/share"
@@ -137,14 +137,14 @@ check_cli_update() {
 # コールドキーがインストールされているかチェックします
 #
 check_coldkeys_exists() {
-    echo "コールドキーをチェックしています..."
+    echo "暗号化済みコールドキーをチェックしています..."
     echo
-    keys_is_installed
+    encrypted_keys_exists
     # shellcheck disable=SC2181
     if [ $? -ne 0 ]; then
-        echo "暗号化済みコールドキーをチェックしています..."
+        echo "コールドキーをチェックしています..."
         echo
-        encrypted_keys_exists
+        keys_is_installed
         if [ $? -ne 0 ]; then
             echo_red "コールドキーがインポートされていません。"
             echo
@@ -276,6 +276,8 @@ get_keys() {
         '/cnode/payment.addr'
         '/cnode/payment.skey'
         '/cnode/payment.vkey'
+        '/cnode/vrf.skey'
+        '/cnode/vrf.vkey'
         '/cnode/stake.addr'
         '/cnode/stake.skey'
         '/cnode/stake.vkey'
@@ -376,6 +378,7 @@ keys_is_installed() {
 
     for i in "${!keys[@]}"; do
         if [ ! -s "${HOME}${keys[$i]}" ]; then
+            echo_red "${keys[$i]}がみつかりません..."
             return 1
         fi
     done
@@ -1702,6 +1705,12 @@ unlock_keys() {
 
 lock_keys() {
     chmod u-rwx "${COLDKEYS_DIR}"
+    if [ -f "${NODE_HOME}/vrf.skey" ]; then
+        chmod 400 "${NODE_HOME}/vrf.skey"
+    fi
+    if [ -f "${NODE_HOME}/vrf.vkey" ]; then
+        chmod 400 "${NODE_HOME}/vrf.vkey"
+    fi
 }
 
 
@@ -1723,7 +1732,7 @@ encrypt_keys() {
     cd "$HOME" || exit
     unlock_keys
 
-    if ! tar czf ${COLDKEYS_TARBALL} ./cold-keys/node.* ./cnode/payment.{addr,skey,vkey} ./cnode/stake.{addr,skey,vkey}; then
+    if ! tar czf ${COLDKEYS_TARBALL} ./cold-keys/node.* ./cnode/payment.{addr,skey,vkey} ./cnode/vrf.{skey,vkey} ./cnode/stake.{addr,skey,vkey}; then
         echo
         echo_red "コールドキーの圧縮に失敗しました"
         echo
@@ -1783,7 +1792,7 @@ delete_coldkeys() {
 
     unlock_keys
 
-    if ! rm -f ./cold-keys/node.* ./cnode/payment.{addr,skey,vkey} ./cnode/stake.{addr,skey,vkey}; then
+    if ! rm -f ./cold-keys/node.* ./cnode/payment.{addr,skey,vkey} ./cnode/vrf.{skey,vkey} ./cnode/stake.{addr,skey,vkey}; then
         echo
         echo_red "コールドキーの削除に失敗しました"
         echo
@@ -1851,6 +1860,70 @@ decrypt_keys() {
 }
 
 
+generate_keys_hash() {
+
+    unlock_keys
+
+    IFS=' '
+    keys_array=$(get_keys)
+    keys=($keys_array)
+
+    COLDKEYS_HASHFILE="${SHARE_DIR}/${COLDKEYS_TARBALL}.txt"
+    rm -f "${COLDKEYS_HASHFILE}"
+
+    for i in "${!keys[@]}"; do
+        if [ -f "${HOME}${keys[$i]}" ]; then
+            HASH=$(sha256sum "${HOME}${keys[$i]}" | cut -d ' ' -f 1)
+            echo "${keys[$i]}:${HASH}" >> "${COLDKEYS_HASHFILE}"
+        fi
+    done
+
+    lock_keys
+
+    echo_green "ハッシュファイルを作成しました。"
+    echo
+    echo_green "${COLDKEYS_HASHFILE}"
+    echo
+
+    return 0
+}
+
+
+verify_keys_hash() {
+
+    unlock_keys
+
+    IFS=' '
+    keys_array=$(get_keys)
+    keys=($keys_array)
+
+    COLDKEYS_HASHFILE="${SHARE_DIR}/${COLDKEYS_TARBALL}.txt"
+
+    # read "${COLDKEYS_HASHFILE}"
+    while read LINE
+    do
+        FILE=$(echo "${LINE}" | cut -d ':' -f 1)
+        FILENAME="${HOME}${FILE}"
+        FILEHASH=$(sha256sum "${FILENAME}" | cut -d ' ' -f 1)
+
+        HASH=$(echo "${LINE}" | cut -d ':' -f 2)
+
+#        echo -n "${FILE}"
+        printf "%-25s" "${FILE}"
+        if [ $HASH = $FILEHASH ]; then
+            echo_green "[OK]"
+        else
+            echo_red "[NG]"
+        fi
+        echo
+    done < "${COLDKEYS_HASHFILE}"
+
+    lock_keys
+
+    return 0
+}
+
+
 #
 # メインヘッダーを描画します
 #
@@ -1876,6 +1949,7 @@ main_header() {
             emoji_keys=":lock:"
         fi
     fi
+    clear
 
     if existsGum; then
         gum style --foreground 4 --border double --align center --width 60 --margin "0 1" --padding "1 2" \
@@ -1903,7 +1977,7 @@ settings_menu() {
 
     main_header
     if existsGum; then
-        menu=$(gum choose --limit 1 --height 10 --header "===== 各種設定 =====" "1. キーをインポート" "2. cardao-cliバージョンアップ" "3. ctoolバージョンアップ" "4. キー暗号化" "5. キー復号化" "h. ホームへ戻る" "q. 終了")
+        menu=$(gum choose --limit 1 --height 10 --header "===== 各種設定 =====" "1. キーをインポート" "2. cardao-cliバージョンアップ" "3. ctoolバージョンアップ" "4. キー暗号化" "5. キー復号化" "6. キーハッシュ生成" "7. キーハッシュ検証" "h. ホームへ戻る" "q. 終了")
         echo " $menu"
         menu=${menu:0:1}
     else
@@ -1957,6 +2031,18 @@ settings_menu() {
                 echo
                 pressKeyEnter
             fi
+            settings_menu
+            ;;
+        6)
+            clear
+            generate_keys_hash
+            pressKeyEnter
+            settings_menu
+            ;;
+        7)
+            clear
+            verify_keys_hash
+            pressKeyEnter
             settings_menu
             ;;
         h)
