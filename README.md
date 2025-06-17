@@ -8,8 +8,8 @@ Cardano airgap node docker(-compose) and TUI tool
 
 ## History
 
-- 10.4.1.4 2025-06-17
-    - ReRelease
+- 10.4.1.6 2025-06-17
+    - Fix Release
 
 - 10.4.1.3 2025-06-17
     - ctool v0.6.51
