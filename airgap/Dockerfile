@@ -21,6 +21,7 @@ apt-get update \
     sudo \
     tmux \
     vim \
+    wget \
 && apt-get clean \
 && rm -rf /var/lib/apt/lists/* \
 \
@@ -31,6 +32,13 @@ apt-get update \
  | tar -zxC /home/cardano/git/cardano-node2 ./bin/cardano-cli \
 && mv $(find /home/cardano/git/cardano-node2 -type f -name "cardano-cli") /usr/local/bin/cardano-cli \
 && cardano-cli version \
+&& signer_release="$(curl -s https://api.github.com/repos/gitmachtl/cardano-signer/releases/latest | jq -r '.tag_name' | sed -e "s/^.\{1\}//")" \
+&& cd /home/cardano/git \
+&& wget -q https://github.com/gitmachtl/cardano-signer/releases/download/v${signer_release}/cardano-signer-${signer_release}_linux-x64.tar.gz \
+&& tar -xzvf cardano-signer-${signer_release}_linux-x64.tar.gz \
+&& rm cardano-signer-${signer_release}_linux-x64.tar.gz \
+&& cp /home/cardano/git/cardano-signer /usr/local/bin/cardano-signer \
+&& cardano-signer --version \
 && rm -rf /home/cardano/git \
 \
 && useradd -m -s /bin/bash cardano \
