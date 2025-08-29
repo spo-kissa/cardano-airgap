@@ -1,6 +1,6 @@
 FROM ubuntu:jammy
 
-ENV AIRGAP_VERSION 10.5.1.1
+ENV AIRGAP_VERSION 10.5.1.2
 RUN mv /usr/bin/sh /usr/bin/sh_tmp && ln -s /usr/bin/bash /usr/bin/sh
 ENV DEBIAN_FRONTEND noninteractive
 RUN <<EOF
