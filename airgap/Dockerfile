@@ -1,5 +1,6 @@
 FROM ubuntu:jammy
 
+ENV AIRGAP_VERSION 10.5.1.0
 RUN mv /usr/bin/sh /usr/bin/sh_tmp && ln -s /usr/bin/bash /usr/bin/sh
 ENV DEBIAN_FRONTEND noninteractive
 RUN <<EOF
@@ -28,7 +29,7 @@ apt-get update \
 && locale-gen en_US.UTF-8 \
 \
 && mkdir -p /home/cardano/git/cardano-node2 && cd /home/cardano/git/cardano-node2 \
-&& curl -SL https://github.com/IntersectMBO/cardano-node/releases/download/10.4.1/cardano-node-10.4.1-linux.tar.gz \
+&& curl -SL https://github.com/IntersectMBO/cardano-node/releases/download/10.5.1/cardano-node-10.5.1-linux.tar.gz \
  | tar -zxC /home/cardano/git/cardano-node2 ./bin/cardano-cli \
 && mv $(find /home/cardano/git/cardano-node2 -type f -name "cardano-cli") /usr/local/bin/cardano-cli \
 && cardano-cli version \
