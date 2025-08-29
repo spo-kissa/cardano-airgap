@@ -3,7 +3,7 @@
 set -u
 #set -x
 
-CTOOL_VERSION=0.6.51
+CTOOL_VERSION=0.6.65
 
 
 SHARE_DIR="/mnt/share"
@@ -1860,6 +1860,57 @@ decrypt_keys() {
 }
 
 
+#
+# コールドキーの復号化と展開
+#   作業終了後 delete_coldkeys を呼び出す事！
+#
+unlock_encrypted_keys() {
+
+    if [ ! -s ${COLDKEYS_ENCFILE} ]; then
+        echo_red "暗号化キーファイルが見つかりませんでした"
+        echo
+        echo
+        pressKeyEnter
+        return 1
+    fi
+
+    cd "$HOME" || exit
+
+    # 復号化
+    echo
+    echo_green "コールドキーの復号化に必要なパスワードを入力してください"
+    echo
+    if ! openssl enc -d -aes256 -pbkdf2 -md sha-256 -in "${COLDKEYS_ENCFILE}" -out "${HOME}/${COLDKEYS_TARBALL}"; then
+        echo
+        echo_red "コールドキーの復号化に失敗しました。再度お試しください。"
+        echo
+        echo
+        pressKeyEnter "メニューに戻るにはエンターキーを押してください"
+        return 1
+    fi
+
+    unlock_keys
+
+    # 展開
+    if ! tar xf ${COLDKEYS_TARBALL}; then
+        echo
+        echo_red "コールドキーの展開に失敗しました。再度お試しください。"
+        echo
+        echo
+        pressKeyEnter "メニューに戻るにはエンターキーを押してください"
+        echo
+        rm -f "${HOME}/${COLDKEYS_TARBALL}"
+        return 1
+    fi
+
+    lock_keys
+
+    rm "${HOME}/${COLDKEYS_TARBALL}"
+
+    return 0
+}
+
+
 generate_keys_hash() {
 
     unlock_keys
@@ -1919,6 +1970,364 @@ verify_keys_hash() {
     done < "${COLDKEYS_HASHFILE}"
 
     lock_keys
+
+    return 0
+}
+
+
+calidus_keys() {
+
+    while true; do
+
+        clear
+        echo
+        echo "■ Calidus Pool Key の作成と設定"
+        echo
+        echo "一つのペアキーで複数のプールを登録することができます。"
+        echo "一つのペアキーで複数のプールを登録する場合で、二つ目のプールを登録する場合は2を入力してください。"
+        echo "それ以外は1を入力してください。"
+        echo 
+        read -n 1 -r -p "[1] 新規作成 [2] 既存のキーを使用 > " choise
+
+        case ${choise:0:1} in
+            1)
+                echo
+                echo "新規にCalidus Pool Keyを作成します。"
+                echo 
+                mkdir -p "${NODE_HOME}/calidus"
+                cd "${NODE_HOME}/calidus" || (echo_red "ディレクトリの移動に失敗しました" && return 1)
+                if ! cardano-signer keygen --path payment \
+                    --out-skey myCalidusKey.skey \
+                    --out-vkey myCalidusKey.vkey \
+                    --json-extended \
+                    --out-file Calidus-MnemonicsKey.json
+                then
+                    echo_red "Calidus Pool Key の作成に失敗しました"
+                    pressKeyEnter
+                    return 1
+                fi
+                echo
+                echo_green "Calidus Pool Key の作成が完了しました！"
+                echo
+                echo "以下のファイルが生成されました。"
+                echo
+                echo_green "myCalidusKey.skey, myCalidusKey.vkey, Calidus-MnemonicsKey.json"
+                echo
+                echo
+                break
+                ;;
+            2)
+                echo
+                echo "既存の Calidus Pool Key を使用します。"
+                echo "以下のファイルをshareディレクトリにコピーしてください。"
+                echo
+                echo_green "myCalidusKey.skey, myCalidusKey.vkey"
+                echo
+                echo
+                while true; do
+                    pressKeyEnter "ファイルをコピーしたらEnterキーを押してください"
+                    if [ -f "${SHARE_DIR}/myCalidusKey.skey" ] && [ -f "${SHARE_DIR}/myCalidusKey.vkey" ]; then
+                        cp "${SHARE_DIR}/myCalidusKey.skey" "${NODE_HOME}/calidus/myCalidusKey.skey"
+                        cp "${SHARE_DIR}/myCalidusKey.vkey" "${NODE_HOME}/calidus/myCalidusKey.vkey"
+                        echo_green "Calidus Pool Key のインポートが完了しました！"
+                        echo
+                        echo
+                        break
+                    else
+                        echo_red "ファイルが見つかりません。もう一度確認してください。"
+                        echo
+                        echo
+                    fi
+                done
+                break
+                ;;
+            *)
+                echo_red "無効な選択です。"
+                pressKeyEnter "エンターキーを押してください。> "
+                ;;
+        esac
+
+    done
+
+    echo
+    echo "Calidus Pool Key のメタデータを作成します。"
+    echo
+
+    use_encrypted_keys=0
+    if ! keys_is_installed; then
+        if ! encrypted_keys_exists; then
+            echo_red "コールドキーがインストールされていません"
+            echo
+            echo
+            pressKeyEnter "メニューに戻るにはエンターキーを押してください"
+            return 1
+        else
+            if ! unlock_encrypted_keys; then
+                return 1
+            fi
+            use_encrypted_keys=1
+        fi
+    fi
+
+
+    unlock_keys
+
+    if ! cardano-signer sign --cip88 \
+        --calidus-public-key $NODE_HOME/calidus/myCalidusKey.vkey \
+        --secret-key $COLDKEYS_DIR/node.skey \
+        --json \
+        --out-file $NODE_HOME/calidus/myCalidusRegistrationMetadata.json
+    then
+        if [ $use_encrypted_keys -eq 1 ]; then
+            delete_coldkeys
+            use_encrypted_keys=0
+        fi
+        lock_keys
+        echo_red "Calidus Pool Key の署名に失敗しました"
+        echo
+        echo
+        pressKeyEnter "メニューに戻るにはエンターキーを押してください"
+        return 1
+    fi
+
+    if [ $use_encrypted_keys -eq 1 ]; then
+        if ! delete_coldkeys; then
+            echo_red "コールドキーの削除に失敗しました"
+            echo
+            echo
+            pressKeyEnter "メニューに戻るにはエンターキーを押してください"
+            return 1
+        fi
+    fi
+    lock_keys
+
+
+    echo_green "Calidus Pool Key のメタデータの作成が完了しました！"
+    echo
+    echo "以下のファイルが生成されました。"
+    echo
+    echo_green "myCalidusRegistrationMetadata.json"
+    echo
+
+    pressKeyEnter "次のステップに進むにはエンターキーを押してください"
+
+
+    clear
+    echo
+    echo_red "以下の作業をブロックプロデューサーノードで実行してください"
+    echo
+    echo
+    echo "1. 最新のスロット番号を取得"
+    echo
+    echo 'cd $NODE_HOME'
+    echo 'currentSlot=$(cardano-cli conway query tip $NODE_NETWORK | jq -r '.slot')'
+    echo 'echo Current Slot: $currentSlot'
+    echo
+    echo
+    echo '2. 送金額を設定'
+    echo
+    echo 'amountToSend=10000000'
+    echo 'echo "送金額: $amountToSend Lovelace"'
+    echo 
+    echo
+    echo '3. 送信先アドレスを設定'
+    echo 
+    echo 'destinationAddress=$(echo $(cat $NODE_HOME/payment.addr))'
+    echo 'echo 送金先: $destinationAddress'
+    echo
+    echo
+    pressKeyEnter "エンターキーを押して次のステップに進んでください"
+    clear
+    echo_red "以下の作業をブロックプロデューサーノードで実行してください"
+    echo
+    echo
+    echo '4. payment.addr の残高を算出'
+    echo
+    echo 'cardano-cli conway query utxo \'
+    echo '    --address $(cat payment.addr) \'
+    echo '    $NODE_NETWORK \'
+    echo '    --output-text \'
+    echo '    --out-file fullUtxo.out'
+    echo
+    echo "tail -n +3 fullUtxo.out | sort -k3 -nr | sed -e '/lovelace + [0-9]/d' > balance.out"
+    echo 'cat balance.out'
+    echo
+    echo
+    echo '5. UTXOを算出'
+    echo
+    echo 'tx_in=""'
+    echo 'total_balance=0'
+    echo 'while read -r utxo; do'
+    echo '    in_addr=$(awk '{ print \$1 }' <<< "${utxo}")'
+    echo '    idx=$(awk '{ print \$2 }' <<< "${utxo}")'
+    echo '    utxo_balance=$(awk '{ print \$3 }' <<< "${utxo}")'
+    echo '    total_balance=$((${total_balance}+${utxo_balance}))'
+    echo '    echo TxHash: ${in_addr}#${idx}'
+    echo '    echo ADA: ${utxo_balance}'
+    echo '    tx_in="${tx_in} --tx-in ${in_addr}#${idx}"'
+    echo 'done < balance.out'
+    echo 'txcnt=$(cat balance.out | wc -l)'
+    echo 'echo Total ADA balance: ${total_balance}'
+    echo 'echo Number of UTXOs: ${txcnt}'
+    echo 'tempBalanceAmont=$(( ${total_balance}-${amountToSend} ))'
+    echo
+    echo
+    pressKeyEnter "エンターキーを押して次のステップに進んでください"
+    clear
+    echo_red "以下の作業をブロックプロデューサーノードで実行してください"
+    echo
+    echo
+    echo '6. ウォレット残高情報ファイル作成'
+    echo
+    echo 'cat > $NODE_HOME/wallet_balance.sh << EOF'
+    echo '#!/bin/bash'
+    echo 'total_balance=$total_balance'
+    echo 'tx_in="$tx_in"'
+    echo 'tempBalanceAmont=$tempBalanceAmont'
+    echo 'destinationAddress=$destinationAddress'
+    echo 'amountToSend=$amountToSend'
+    echo 'currentSlot=$currentSlot'
+    echo 'EOF'
+    echo
+    echo
+    echo -n 'BPの $NODE_HOME ディレクトリにある '
+    echo_green "wallet_balance.sh, params.json"
+    echo " ファイルをエアギャップのshareディレクトリにコピーしてください"
+
+    while true; do
+        pressKeyEnter "ファイルをコピーしたらエンターキーを押してください"
+        if [ -f "${SHARE_DIR}/wallet_balance.sh" ] && [ -f "${SHARE_DIR}/params.json" ]; then
+            cp "${SHARE_DIR}/wallet_balance.sh" "${NODE_HOME}/wallet_balance.sh"
+            cp "${SHARE_DIR}/params.json" "${NODE_HOME}/params.json"
+            echo_green "ファイルのインポートが完了しました！"
+            echo
+            echo
+            break
+        else
+            echo_red "ファイルが見つかりません。もう一度確認してください。"
+            echo
+            echo
+        fi
+    done
+
+    source $NODE_HOME/wallet_balance.sh
+
+    echo "トランザクションファイルを作成しています..."
+    echo
+    cd $NODE_HOME || (echo_red "ディレクトリの移動に失敗しました" && return 1)
+
+    if ! cardano-cli conway transaction build-raw \
+        ${tx-in} \
+        --tx-out $(cat payment.addr)+${tempBalanceAmont} \
+        --tx-out ${destinationAddress}+${amountToSend} \
+        --invalid-hereafter $((${currentSlot} + 10000)) \
+        --metadata-json-file $NODE_HOME/calidus/myCalidusRegistrationMetadata.json \
+        --fee 200000 \
+        --out-file tx.tmp
+    then
+        echo_red "トランザクションファイルの作成に失敗しました"
+        echo
+        echo
+        pressKeyEnter "メニューに戻るにはエンターキーを押してください"
+        return 1
+    fi
+
+    echo "最低手数料を計算しています..."
+    fee=$(cardano-cli conway transaction calculate min-fee \
+        --tx-body-file tx.tmp \
+        --witness-count 1 \
+        --protocol-params-file params.json | awk '{print $1}')
+    echo "fee: ${fee}"
+
+    txOut=$((${total_balance}-${fee}-${amountToSend}))
+    echo "Change Output: ${txOut}"
+
+    echo
+    echo
+
+    echo "トランザクションファイルを構築しています..."
+    if ! cardano-cli conway transaction build-raw \
+        ${tx-in} \
+        --tx-out $(cat payment.addr)+${txOut} \
+        --tx-out ${destinationAddress}+${amountToSend} \
+        --invalid-hereafter $((${currentSlot} + 10000)) \
+        --metadata-json-file $NODE_HOME/calidus/myCalidusRegistrationMetadata.json \
+        --fee ${fee} \
+        --out-file tx.raw
+    then
+        echo_red "トランザクションファイルの構築に失敗しました"
+        echo
+        echo
+        pressKeyEnter "メニューに戻るにはエンターキーを押してください"
+        return 1
+    fi
+
+    echo "トランザクションファイルに署名しています..."
+    echo
+    echo
+
+    cd $NODE_HOME || (echo_red "ディレクトリの移動に失敗しました" && return 1)
+
+    if ! keys_is_installed; then
+        if ! encrypted_keys_exists; then
+            echo_red "コールドキーがインストールされていません"
+            echo
+            echo
+            pressKeyEnter "メニューに戻るにはエンターキーを押してください"
+            return 1
+        else
+            if ! unlock_encrypted_keys; then
+                return 1
+            fi
+            use_encrypted_keys=1
+        fi
+    fi
+    
+    if ! cardano-cli conway transaction sign \
+        --tx-body-file tx.raw \
+        --signing-key-file payment.skey \
+        $NODE_NETWORK \
+        --out-file tx.signed
+    then
+        if [ $use_encrypted_keys -eq 1 ]; then
+            delete_coldkeys
+        fi
+        lock_keys
+        echo_red "トランザクションファイルへの署名に失敗しました"
+        echo
+        echo
+        pressKeyEnter "メニューに戻るにはエンターキーを押してください"
+        return 1
+    fi
+
+    if [ $use_encrypted_keys -eq 1 ]; then
+        if ! delete_coldkeys; then
+            echo_red "コールドキーの削除に失敗しました"
+            echo
+            echo
+            pressKeyEnter "メニューに戻るにはエンターキーを押してください"
+            return 1
+        fi
+    fi
+    lock_keys
+
+
+    echo_green "トランザクションへの署名が完了しました！"
+    echo
+
+    cp "${NODE_HOME}/tx.signed" "${SHARE_DIR}/tx.signed"
+
+    echo_green "'share'ディレクトリに'tx.signed'ファイルを出力しました。"
+    echo
+    echo
+
+    cp "${NODE_HOME}/calidus/myCalidusKey.skey" "${SHARE_DIR}/myCalidusKey.skey"
+    echo_green "'share'ディレクトリに'myCalidusKey.skey'を出力しました。"
+    echo
+    echo
+
+
+    pressKeyEnter "メニューに戻るにはエンターキーを押してください"
 
     return 0
 }
@@ -2160,7 +2569,7 @@ main_menu() {
 
     main_header
     if existsGum; then
-        menu=$(gum choose --limit 1 --height 8 --header "===== メインメニュー =====" "1. ウォレット操作" "2. KES更新" "3. ガバナンス(登録・投票)" "s. 各種設定" "q. 終了")
+        menu=$(gum choose --limit 1 --height 8 --header "===== メインメニュー =====" "1. ウォレット操作" "2. KES更新" "3. ガバナンス(登録・投票)" "4. Calidus キーの発行" "s. 各種設定" "q. 終了")
         echo " $menu"
         menu=${menu:0:1}
     else
@@ -2168,6 +2577,8 @@ main_menu() {
         echo ' [2] KES更新'
         echo ' --------------------------------'
         echo ' [3] ガバナンス(登録・投票)'
+        echo ' --------------------------------'
+        echo ' [4] Calidus キーの発行'
         echo ' --------------------------------'
         echo ' [s] 各種設定'
         echo ' --------------------------------'
@@ -2187,6 +2598,9 @@ main_menu() {
         3)
         	governance_menu
         	;;
+        4)
+            calidus_keys
+            ;;
         s)
             settings_menu
             ;;
