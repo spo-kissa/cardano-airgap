@@ -4,13 +4,11 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "バージョン番号"
+        description: "バージョン番号(例: v1.2.3)"
         required: true
   pull_request:
-    types:
-      - closed
-    branches:
-      - main
+    types: [closed]
+    branches: [main]
 
 permissions:
   contents: read
@@ -20,44 +18,91 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-    if: github.event.pull_request.merged == true && startsWith(github.head_ref, 'release')
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.pull_request.merged == true && startsWith(github.head_ref, 'release/'))
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkoout
         uses: actions/checkout@v4
 
-      - name: Create Release Tag And Note
-        id: release
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ github.event.pull_request.title }}
+      - name: Resolve tag
+        id: vars
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ inputs.tag }}"
+          else
+            BR="${{ github.head_ref }}"
+            TAG="${BR#release/}"
+          fi
+          TAG="${TAG#refs/tags/}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "RELEASE_TAG=$TAG" >> "$GITHUB_ENV"
+
+      # ノートだけを作る（公開しない）
+      - name: Draft notes (Release Drafter)
+        id: rd
         uses: release-drafter/release-drafter@v6
         with:
-          tag: ${{ env.RELEASE_TAG }}
-          name: Release ${{ env.RELEASE_TAG }}
-          version: ${{ env.RELEASE_TAG }}
-          publish: true
-#        run: |
-#          gh release create '${{ inputs.tag }}' --repo '${{ github.repository }}' --notes ""
+          tag: ${{ steps.vars.outputs.tag }}
+          name: Release ${{ steps.vars.outputs.tag }}
+          version: ${{ steps.vars.outputs.tag }}
+          publish: false
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
 
       - name: Run Release Script
-        env:
-          RELEASE_TAG: ${{ github.event.pull_request.title }}
-        run: ./release.sh ${{ env.RELEASE_TAG }}
+        run: ./release.sh "${RELEASE_TAG}"
 
       - name: Check Release
         run: ls -l ./release
 
-      - name: Publish Release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-          RELEASE_TAG: ${{ github.event.pull_request.title }}
+      - name: Publish / Update Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.release.outputs.tag_name }}
-          repository: ${{ github.repository }}
+          tag_name: ${{ steps.vars.outputs.tag }}
+          body: ${{ steps.rd.outputs.body }}
+          append_body: true
+          overwrite_files: true
+          fail_on_unmatched_files: false
           files: |
             release/**
-        
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+
+#      - name: Create Release Tag And Note
+#        id: release
+#        env:
+#          GITHUB_TOKEN: ${{ github.token }}
+#          RELEASE_TAG: ${{ github.event.pull_request.title }}
+#        uses: release-drafter/release-drafter@v6
+#        with:
+#          tag: ${{ env.RELEASE_TAG }}
+#          name: Release ${{ env.RELEASE_TAG }}
+#          version: ${{ env.RELEASE_TAG }}
+#          publish: true
+##        run: |
+##          gh release create '${{ inputs.tag }}' --repo '${{ github.repository }}' --notes ""
+#
+#      - name: Run Release Script
+#        env:
+#          RELEASE_TAG: ${{ github.event.pull_request.title }}
+#        run: ./release.sh ${{ env.RELEASE_TAG }}
+#
+#      - name: Check Release
+#        run: ls -l ./release
+#
+#      - name: Publish Release
+#        env:
+#          GH_TOKEN: ${{ github.token }}
+#          GH_REPO: ${{ github.repository }}
+#          RELEASE_TAG: ${{ github.event.pull_request.title }}
+#        uses: softprops/action-gh-release@v2
+#        with:
+#          tag_name: ${{ steps.release.outputs.tag_name }}
+#          repository: ${{ github.repository }}
+#          files: |
+#            release/**
+#        
