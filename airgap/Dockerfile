@@ -1,6 +1,6 @@
 FROM ubuntu:jammy
 
-ENV AIRGAP_VERSION 10.5.1.2
+ENV AIRGAP_VERSION 10.5.1.3
 RUN mv /usr/bin/sh /usr/bin/sh_tmp && ln -s /usr/bin/bash /usr/bin/sh
 ENV DEBIAN_FRONTEND noninteractive
 RUN <<EOF
@@ -23,6 +23,7 @@ apt-get update \
     tmux \
     vim \
     wget \
+    build-essential \
 && apt-get clean \
 && rm -rf /var/lib/apt/lists/* \
 \
@@ -33,7 +34,7 @@ apt-get update \
  | tar -zxC /home/cardano/git/cardano-node2 ./bin/cardano-cli \
 && mv $(find /home/cardano/git/cardano-node2 -type f -name "cardano-cli") /usr/local/bin/cardano-cli \
 && cardano-cli version \
-&& signer_release="$(curl -s https://api.github.com/repos/gitmachtl/cardano-signer/releases/latest | jq -r '.tag_name' | sed -e "s/^.\{1\}//")" \
+&& signer_release="1.27.0" \
 && cd /home/cardano/git \
 && wget -q https://github.com/gitmachtl/cardano-signer/releases/download/v${signer_release}/cardano-signer-${signer_release}_linux-x64.tar.gz \
 && tar -xzvf cardano-signer-${signer_release}_linux-x64.tar.gz \
