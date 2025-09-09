@@ -1,12 +1,21 @@
 # cardano docker airgap
-Cardano airgap node docker(-compose) and TUI tool
+Cardano airgap node docker(-compose) and TUI tool (ctool)
+
 
 ## Japanese manual
 
 [SPO JAPAN GUILD DOCS](https://e-frontier.systems/cardano/site/setup/docker-air-gap-guid/index.html)
 
 
+## Special Thanks
+
+- [AshiyaPool](https://www.ashiyapool.com/)
+
+
 ## History
+
+- 10.5.1.4 2025-09-09
+    - Fixed a bug causing docker build to fail on macOS.
 
 - 10.4.1.7 2025-06-17
     - Fix Release v2
