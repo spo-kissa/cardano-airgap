@@ -10,7 +10,7 @@ Cardano airgap node docker(-compose) and TUI tool (ctool)
 ## Special Thanks
 
 - [AshiyaPool](https://www.ashiyapool.com/)
-    - We fully support testing and verification on Apple silicon Macs.
+    - Provided full support for functional and compatibility testing on Apple silicon Macs.
 
 
 ## History
