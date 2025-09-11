@@ -6,7 +6,7 @@ services:
       - ./share:/mnt/share:rw
       - local_bin:/usr/local/bin
       - etc:/etc/
-      - ./cardano:/home/cardano
+      - ./cardano:/home/cardano:rw
     network_mode: none
 
 volumes:
