@@ -10,9 +10,14 @@ Cardano airgap node docker(-compose) and TUI tool (ctool)
 ## Special Thanks
 
 - [AshiyaPool](https://www.ashiyapool.com/)
+    - Provided full support for functional and compatibility testing on Apple silicon Macs.
 
 
 ## History
+
+- 10.5.1.5 2025-09-11
+    - Fixed a bug causing docker build to fail on Apple silicon Macs.
+    - ctool v0.6.66
 
 - 10.5.1.4 2025-09-09
     - Fixed a bug causing docker build to fail on macOS.

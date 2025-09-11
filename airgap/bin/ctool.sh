@@ -3,7 +3,7 @@
 set -u
 #set -x
 
-CTOOL_VERSION=0.6.65
+CTOOL_VERSION=0.6.66
 
 
 SHARE_DIR="/mnt/share"
@@ -2362,12 +2362,12 @@ main_header() {
 
     if existsGum; then
         gum style --foreground 4 --border double --align center --width 60 --margin "0 1" --padding "1 2" \
-            'SPO JAPAN GUILD TOOL for Airgap' "v${CTOOL_VERSION}"
+            'SPO JAPAN GUILD TOOL for Airgap' "v${CTOOL_VERSION} on Dockerfile v${AIRGAP_VERSION}"
         
         echo -n " {{ Bold \"Network:\" }} {{ Color \"2\" \"\" \"-${network}-\" }}" | gum format --type template
         echo -n " {{ Bold \"CLL:\" }} {{ Color \"3\" \"\" \"${cli_version}\" }}" | gum format --type template
         echo -n " | {{ Bold \"Disk残容量:\" }} {{ Color \"3\" \"\" \"${available_disk}B\" }}" | gum format --type template
-        echo -n " | {{ Bold \"Kyes:\" }} {{ Color \"3\" \"\" \"${has_keys}\" }}" | gum format --type template
+        echo -n " | {{ Bold \"Keys:\" }} {{ Color \"3\" \"\" \"${has_keys}\" }}" | gum format --type template
         echo -n "${emoji_keys}" | gum format --type emoji
         echo
         echo
