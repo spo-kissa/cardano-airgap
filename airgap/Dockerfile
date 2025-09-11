@@ -1,7 +1,15 @@
 FROM ubuntu:jammy
 
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+ARG TARGETARCH
+
+# airgap version specifed
 ENV AIRGAP_VERSION 10.5.1.4
-RUN mv /usr/bin/sh /usr/bin/sh_tmp && ln -s /usr/bin/bash /usr/bin/sh
+
+# Cardano-Singer
+ENV CS_VERSION=1.27.0
+
 ENV DEBIAN_FRONTEND noninteractive
 RUN <<EOF
 apt-get update \
@@ -27,23 +35,42 @@ apt-get update \
 && apt-get clean \
 && rm -rf /var/lib/apt/lists/* \
 \
-&& locale-gen en_US.UTF-8 \
-\
-&& mkdir -p /home/cardano/git/cardano-node2 && cd /home/cardano/git/cardano-node2 \
-&& curl -SL https://github.com/IntersectMBO/cardano-node/releases/download/10.5.1/cardano-node-10.5.1-linux.tar.gz \
- | tar -zxC /home/cardano/git/cardano-node2 ./bin/cardano-cli \
-&& mv $(find /home/cardano/git/cardano-node2 -type f -name "cardano-cli") /usr/local/bin/cardano-cli \
-&& cardano-cli version \
-&& signer_release="1.27.0" \
-&& cd /home/cardano/git \
-&& wget -q https://github.com/gitmachtl/cardano-signer/releases/download/v${signer_release}/cardano-signer-${signer_release}_linux-x64.tar.gz \
-&& tar -xzvf cardano-signer-${signer_release}_linux-x64.tar.gz \
-&& rm cardano-signer-${signer_release}_linux-x64.tar.gz \
-&& cp /home/cardano/git/cardano-signer /usr/local/bin/cardano-signer \
-&& cardano-signer --version \
-&& rm -rf /home/cardano/git \
-\
-&& useradd -m -s /bin/bash cardano \
+&& locale-gen en_US.UTF-8
+EOF
+
+# cardano-cli
+RUN <<'EOF'
+set -eux
+mkdir -p /home/cardano/git/cardano-node2 && cd /home/cardano/git/cardano-node2
+curl -SL https://github.com/IntersectMBO/cardano-node/releases/download/10.5.1/cardano-node-10.5.1-linux.tar.gz \
+ | tar -zxC /home/cardano/git/cardano-node2 ./bin/cardano-cli
+mv $(find /home/cardano/git/cardano-node2 -type f -name "cardano-cli") /usr/local/bin/cardano-cli
+cardano-cli version
+sleep 5
+EOF
+
+# cardano-signer
+RUN <<'EOF'
+set -eux
+case "${TARGETARCH:-}" in
+  amd64) CS_ARCH="x64" ;;
+  arm64) CS_ARCH="arm64" ;;
+  *) echo "unsupported TARGETARCH: ${TARGETARCH:-<empty>}" >&2; exit 1 ;;
+esac
+cd /home/cardano/git
+wget -q https://github.com/gitmachtl/cardano-signer/releases/download/v${CS_VERSION}/cardano-signer-${CS_VERSION}_linux-${CS_ARCH}.tar.gz
+tar -xzvf cardano-signer-${CS_VERSION}_linux-${CS_ARCH}.tar.gz
+rm cardano-signer-${CS_VERSION}_linux-${CS_ARCH}.tar.gz
+install -m 0755 ./cardano-signer /usr/local/bin/cardano-signer
+rm -rf /home/cardano/git
+echo Cardano-Signer Installed!
+cardano-signer --version
+sleep 5
+EOF
+
+RUN <<'EOF'
+set -eux
+useradd -m -s /bin/bash cardano \
 && echo "cardano:airgap" | chpasswd \
 && gpasswd -a cardano sudo \
 \
@@ -80,6 +107,7 @@ RUN touch /home/cardano/.bashrc \
  && echo alias ctool="ctool.sh" >> /home/cardano/.bashrc
 
 RUN . /home/cardano/.bashrc
+RUN chown -R cardano:cardano /home/cardano
 ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
 ENV LC_ALL en_US.UTF-8
