@@ -9,9 +9,10 @@ Cardano airgap node docker(-compose) and TUI tool (ctool)
 
 ## Special Thanks
 
-- [AshiyaPool](https://www.ashiyapool.com/)
+- [AshiyaPool](https://www.ashiyapool.com/) ([X](https://x.com/AshiyaPool))
     - Provided full support for functional and compatibility testing on Apple silicon Macs.
-
+- [NAP - Nekota ADA Pool](https://www.publickey.co.jp/) ([X](https://x.com/necotaSensei)) ([YouTube](https://www.youtube.com/@nap-nekota_cardano))
+    - Using it on an Intel Mac.
 
 ## History
 
