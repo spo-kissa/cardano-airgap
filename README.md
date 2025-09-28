@@ -1,5 +1,5 @@
 # cardano docker airgap
-Cardano airgap node docker(-compose) and TUI tool (ctool)
+Cardano airgap node docker(-compose) and TUI tool (ctool).
 
 
 ## Japanese manual
