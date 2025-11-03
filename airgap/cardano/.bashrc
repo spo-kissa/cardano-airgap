@@ -120,8 +120,10 @@ export TERM=xterm-256color
 
 export NODE_HOME=/home/cardano/cnode
 export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:
-export NODE_NETWORK=--mainnet
+export NODE_CONFIG=mainnet
+export NODE_NETWORK="--mainnet"
 export CARDANO_NODE_NETWORK_ID=mainnet
 export LANG=ja_JP.UTF-8
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/home/cardano/bin
 alias ctool=ctool.sh
+alias airgap='cd /home/cardano/cnode && [ -f airgap-set.tar.gz ] && tar -xOzf airgap-set.tar.gz airgap_script | bash -s verify || echo airgap-set.tar.gz が見つかりません'

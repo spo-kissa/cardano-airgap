@@ -5,7 +5,7 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 ARG TARGETARCH
 
 # airgap version specifed
-ENV AIRGAP_VERSION 10.5.1.4
+ENV AIRGAP_VERSION 10.5.1.7
 
 # Cardano-Singer
 ENV CS_VERSION=1.27.0
@@ -100,11 +100,13 @@ RUN touch /home/cardano/.bashrc \
  && echo export TERM=xterm-256color >> /home/cardano/.bashrc \
  && echo export NODE_HOME=/home/cardano/cnode >> /home/cardano/.bashrc \
  && echo export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH" >> /home/cardano/.bashrc \
+ && echo export NODE_CONFIG=mainnet >> /home/cardano/.bashrc \
  && echo export NODE_NETWORK="--mainnet" >> /home/cardano/.bashrc \
  && echo export CARDANO_NODE_NETWORK_ID=mainnet >> /home/cardano/.bashrc \
  && echo export LANG=ja_JP.UTF-8 >> /home/cardano/.bashrc \
  && echo export PATH=${PATH}:/home/cardano/bin >> /home/cardano/.bashrc \
- && echo alias ctool="ctool.sh" >> /home/cardano/.bashrc
+ && echo alias ctool="ctool.sh" >> /home/cardano/.bashrc \
+ && echo alias airgap="'cd $HOME/cnode && [ -f airgap-set.tar.gz ] && tar -xOzf airgap-set.tar.gz airgap_script | bash -s verify || echo "airgap-set.tar.gz が見つかりません"'" >> /home/cardano/.bashrc
 
 RUN . /home/cardano/.bashrc
 RUN chown -R cardano:cardano /home/cardano
