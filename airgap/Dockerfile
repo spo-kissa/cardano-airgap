@@ -105,6 +105,7 @@ RUN touch /home/cardano/.bashrc \
  && echo export CARDANO_NODE_NETWORK_ID=mainnet >> /home/cardano/.bashrc \
  && echo export LANG=ja_JP.UTF-8 >> /home/cardano/.bashrc \
  && echo export PATH=${PATH}:/home/cardano/bin >> /home/cardano/.bashrc \
+ && echo export SHARE=/mnt/share >> /home/cardano/.bashrc \
  && echo alias ctool="ctool.sh" >> /home/cardano/.bashrc \
  && echo alias airgap="'cd $HOME/cnode && [ -f airgap-set.tar.gz ] && tar -xOzf airgap-set.tar.gz airgap_script | bash -s verify || echo "airgap-set.tar.gz が見つかりません"'" >> /home/cardano/.bashrc
 

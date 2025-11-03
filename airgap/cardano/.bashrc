@@ -125,5 +125,6 @@ export NODE_NETWORK="--mainnet"
 export CARDANO_NODE_NETWORK_ID=mainnet
 export LANG=ja_JP.UTF-8
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/home/cardano/bin
+export SHARE=/mnt/share
 alias ctool=ctool.sh
 alias airgap='cd /home/cardano/cnode && [ -f airgap-set.tar.gz ] && tar -xOzf airgap-set.tar.gz airgap_script | bash -s verify || echo airgap-set.tar.gz が見つかりません'
