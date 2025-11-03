@@ -2,11 +2,11 @@
 
 
 echo.
-echo â€» æ³¨æ„ â€»
-echo ã“ã®ã‚³ãƒžãƒ³ãƒ‰ã‚’ç¶šè¡Œã™ã‚‹ã¨ã€éµãƒ•ã‚¡ã‚¤ãƒ«ã‚‚å‰Šé™¤ã•ã‚Œã¾ã™ï¼
-echo éµãƒ•ã‚¡ã‚¤ãƒ«ã‚’ã‚¨ã‚¯ã‚¹ãƒãƒ¼ãƒˆã—ã¦ã„ã‚‹äº‹ã‚’ç¢ºèªã—ã¦ãã ã•ã„ï¼
+echo ¦ ’ˆÓ ¦
+echo ‚±‚ÌƒRƒ}ƒ“ƒh‚ð‘±s‚·‚é‚ÆAŒ®ƒtƒ@ƒCƒ‹‚àíœ‚³‚ê‚Ü‚·I
+echo Œ®ƒtƒ@ƒCƒ‹‚ðƒGƒNƒXƒ|[ƒg‚µ‚Ä‚¢‚éŽ–‚ðŠm”F‚µ‚Ä‚­‚¾‚³‚¢I
 echo.
-echo ä¸­æ­¢ã™ã‚‹ã«ã¯ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã‚’é–‰ã˜ã‚‹ã‹ã€Ctrl+Cã§çµ‚äº†ã—ã¦ãã ã•ã„ã€‚
+echo ’†Ž~‚·‚é‚É‚ÍƒEƒBƒ“ƒhƒE‚ð•Â‚¶‚é‚©ACtrl+C‚ÅI—¹‚µ‚Ä‚­‚¾‚³‚¢B
 echo.
 
 pause
