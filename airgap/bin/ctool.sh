@@ -3,7 +3,7 @@
 set -u
 #set -x
 
-CTOOL_VERSION=0.6.66
+CTOOL_VERSION=0.6.67
 
 
 SHARE_DIR="/mnt/share"
@@ -296,22 +296,28 @@ check_network() {
         source "$HOME/.cnoderc"
     fi
 
-    if [ ! -v NODE_CONFIG ] || [ -z "$NODE_CONFIG" ]; then
-        echo_red "NODE_CONFIG 環境変数が定義されていません"
+    if [ ! -v CNODERC ] || [ -z "$CNODERC" ]; then
+        echo_red "CNODERC 環境変数が設定されていません"
         echo
     else
-        if [ ! -v NODE_NETWORK ] || [ -z "$NODE_NETWORK" ]; then
-            echo_red "NODE_NETWORK 環境変数が定義されていません"
+        if [ ! -v NODE_CONFIG ] || [ -z "$NODE_CONFIG" ]; then
+            echo_red "NODE_CONFIG 環境変数が定義されていません"
             echo
         else
-            if [ ! -v CARDANO_NODE_NETWORK_ID ] || [ -z "$CARDANO_NODE_NETWORK_ID" ]; then
-                echo_red "CARDANO_NODE_NETWORK_ID 環境変数が定義されていません"
+            if [ ! -v NODE_NETWORK ] || [ -z "$NODE_NETWORK" ]; then
+                echo_red "NODE_NETWORK 環境変数が定義されていません"
                 echo
             else
-                return 0
+                if [ ! -v CARDANO_NODE_NETWORK_ID ] || [ -z "$CARDANO_NODE_NETWORK_ID" ]; then
+                    echo_red "CARDANO_NODE_NETWORK_ID 環境変数が定義されていません"
+                    echo
+                else
+                    return 0
+                fi
             fi
         fi
     fi
+
 
     echo
     echo
@@ -342,16 +348,19 @@ check_network() {
 
     case $network in
         1 )
+            echo export CNODERC=YES >> "$HOME/.cnoderc"
             echo export NODE_CONFIG=mainnet >> "$HOME/.cnoderc"
             echo export NODE_NETWORK='"--mainnet"' >> "$HOME/.cnoderc"
             echo export CARDANO_NODE_NETWORK_ID=mainnet >> "$HOME/.cnoderc"
             ;;
         2 )
+            echo export CNODERC=YES >> "$HOME/.cnoderc"
             echo export NODE_CONFIG=preview >> "$HOME/.cnoderc"
             echo export NODE_NETWORK='"--testnet-magic 2"' >> "$HOME/.cnoderc"
             echo export CARDANO_NODE_NETWORK_ID=2 >> "$HOME/.cnoderc"
             ;;
         3 )
+            echo export CNODERC=YES >> "$HOME/.cnoderc"
             echo export NODE_CONFIG=preprod >> "$HOME/.cnoderc"
             echo export NODE_NETWORK='"--testnet-magic 1"' >> "$HOME/.cnoderc"
             echo export CARDANO_NODE_NETWORK_ID=1 >> "$HOME/.cnoderc"
