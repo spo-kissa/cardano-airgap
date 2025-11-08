@@ -5,7 +5,7 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 ARG TARGETARCH
 
 # airgap version specifed
-ENV AIRGAP_VERSION 10.5.1.7
+ENV AIRGAP_VERSION 10.5.1.8
 
 # Cardano-Singer
 ENV CS_VERSION=1.27.0
