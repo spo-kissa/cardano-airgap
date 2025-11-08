@@ -3,7 +3,7 @@
 set -u
 #set -x
 
-CTOOL_VERSION=0.6.67
+CTOOL_VERSION=0.6.68
 
 
 SHARE_DIR="/mnt/share"
@@ -287,6 +287,20 @@ get_keys() {
 
 
 #
+# lib: Calidusキーのファイルパスの配列を返します
+#
+get_calidus_keys() {
+    keys=(
+        '/cnode/calidus/Calidus-MnemonicsKey.json'
+        '/cnode/calidus/myCalidusRegistrationMetadata.json'
+        '/cnode/calidus/myCalidusKey.skey'
+        '/cnode/calidus/myCalidusKey.vkey'
+    )
+    echo "${keys[@]}"
+}
+
+
+#
 # ターゲットネットワークチェックおよび初期化
 #
 # shellcheck disable=SC1091
@@ -368,6 +382,28 @@ check_network() {
     esac
 
     source "$HOME/.cnoderc"
+
+    return 0
+}
+
+
+
+#
+# lib: Calidusキーが全てインストールされているかどうかをかえします
+#
+calidus_keys_is_installed() {
+
+    IFS=' '
+    keys_array=$(get_calidus_keys)
+    # shellcheck disable=SC2206
+    keys=($keys_array)
+
+    for i in "${!keys[@]}"; do
+        if [ ! -s "${HOME}${keys[$i]}" ]; then
+            echo_red "${keys[$i]}がみつかりません..."
+            return 1
+        fi
+    done
 
     return 0
 }
@@ -1185,31 +1221,20 @@ reflesh_kes() {
         echo
         echo "■ ブロックプロデューサーノードで gtool を起動し、KESの更新を始めて下さい。"
         echo
-        echo "1.BPのkes.vkeyとkes.skey をエアギャップのcnodeディレクトリにコピーしてください"
+        echo " 1. BPのairgap-set.tar.gzをエアギャップのcnodeディレクトリにコピーしてください"
         echo 
-        echo "上記の表示が出たら、以下の2つのファイルをshareディレクトリにコピーしてください"
-        echo "  kes.vkey"
-        echo "  kes.skey"
+        echo " 上記の表示が出たら、airgap-set.tar.gzファイルをshareディレクトリにコピーしてください"
         echo
 
         pressKeyEnter "コピーが出来たらEnterキーを押してください"
 
-        if [ -s ${SHARE_DIR}/kes.vkey ] && [ -f ${SHARE_DIR}/kes.vkey ]; then
+        if [ -s ${SHARE_DIR}/airgap-set.tar.gz ] && [ -f ${SHARE_DIR}/airgap-set.tar.gz ]; then
 
-            if [ -s ${SHARE_DIR}/kes.skey ] && [ -f ${SHARE_DIR}/kes.skey ]; then
-
-                break
-
-            else
-
-                echo_red "kes.skeyファイルが空かファイルが見つかりません。"
-                echo
-
-            fi
+            break;
 
         else
 
-            echo_red "kes.vkeyファイルが空かファイルが見つかりません。"
+            echo_red "airgap-set.tar.gzファイルが空かファイルが見つかりません。"
             echo
 
         fi
@@ -1218,157 +1243,22 @@ reflesh_kes() {
         if readYn "もう一度チェックしますか？"; then
             continue;
         else
-            return 1;
+            main_menu;
         fi
 
     done
 
-    cp ${SHARE_DIR}/kes.vkey "${NODE_HOME}/"
-    cp ${SHARE_DIR}/kes.skey "${NODE_HOME}/"
+    cp ${SHARE_DIR}/airgap-set.tar.gz "${NODE_HOME}/"
 
-    cd "${NODE_HOME}" || (echo_red "${NODE_HOME}ディレクトリへの移動に失敗しました" && main_menu)
+    cd $HOME/cnode
+    tar -xOzf airgap-set.tar.gz airgap_script | bash -s verify || echo "airgap-set.tar.gz が見つかりません"
 
-    VKEY=$(sha256sum kes.vkey | cut -d ' ' -f 1)
-    SKEY=$(sha256sum kes.skey | cut -d ' ' -f 1)
+    rm $SHARE_DIR/airgap-set.tar.gz
+    cp $NODE_HOME/node.cert $SHARE_DIR/node.cert
 
-    echo -n "kes.vkey >> "
-    echo_yellow "${VKEY}"
     echo
-    echo -n "kes.skey >> "
-    echo_yellow "${SKEY}"
+    echo_green "node.certファイルをshareディレクトリに出力しました"
     echo
-    echo
-
-    if ! readYn "ハッシュ値は一致していますか?"; then
-        echo_red "キャンセルしました"
-        main_menu
-    fi
-
-    if ! use_coldkeys; then
-        rm "${NODE_HOME}/kes.vkey"
-        rm "${NODE_HOME}/kes.skey"
-        main_menu
-    fi
-
-    while true; do
-        clear
-        echo
-        echo "■ カウンター番号情報"
-        echo
-        echo "今回更新のカウンター番号: XX"
-        echo
-        echo "ブロックプロデューサーノードのカウンター番号情報に表示されている、"
-        echo "今回更新のカウンター番号を入力してください。"
-        
-        read -r -p "半角数字で入力してEnterキーを押してください > " counter
-        echo
-
-        echo "カウンター番号: '${counter}'"
-        echo
-        if readYn "上記であっていますか？"; then
-        
-            unlock_keys
-
-            # shellcheck disable=SC2086
-            if ! cardano-cli conway node new-counter \
-                --cold-verification-key-file ${COLDKEYS_DIR}/node.vkey \
-                --counter-value ${counter} \
-                --operational-certificate-issue-counter-file ${COLDKEYS_DIR}/node.counter;
-            then
-                unuse_coldkeys
-                lock_keys
-
-                echo_red "ノードカウンターの更新に失敗しました"
-                echo
-                echo
-                pressKeyEnter "エンターキーを押して再度お試しください"
-                return 1
-            fi
-
-            lock_keys
-
-            break
-
-        fi
-
-    done
-
-    unlock_keys
-
-    # shellcheck disable=SC2086
-    cardano-cli conway text-view decode-cbor \
-        --in-file  ${COLDKEYS_DIR}/node.counter \
-        | grep int | head -1 | cut -d"(" -f2 | cut -d")" -f1
-    
-    lock_keys
-
-    
-    while true; do
-
-        clear
-        echo
-        echo "■ 現在のstartKesPeriod"
-        echo
-        echo "現在のstartKesPeriod: XXXX"
-        echo
-        echo "ブロックプロデューサーノードに表示されている、"
-        echo "現在のstartKesPeriod の値を入力してください。"
-
-        
-        read -r -p "半角数字で入力してEnterキーを押してください > " period
-        echo
-
-        echo "startKesPeriod: '${period}'"
-        echo
-        if readYn "上記であっていますか？"; then
-        
-            cd "$NODE_HOME" || (unuse_coldkeys && return 1)
-
-            unlock_keys
-
-            # shellcheck disable=SC2086
-            if ! cardano-cli conway node issue-op-cert \
-                --kes-verification-key-file kes.vkey \
-                --cold-signing-key-file ${COLDKEYS_DIR}/node.skey \
-                --operational-certificate-issue-counter ${COLDKEYS_DIR}/node.counter \
-                --kes-period ${period} \
-                --out-file node.cert;
-            then
-                unuse_coldkeys
-                lock_keys
-                echo
-                echo
-                echo_red "'node.cert'ファイルの生成に失敗しました"
-                echo
-                echo
-                pressKeyEnter "再度お試しください"
-                return 1
-            fi
-
-            cp "${NODE_HOME}/node.cert" "$SHARE_DIR/"
-            
-            unuse_coldkeys
-            lock_keys
-
-            clear
-            echo
-            echo "■ node.cert生成完了"
-            echo
-            echo "share ディレクトリに node.cert ファイルを出力しました。"
-            echo "このファイルをBPのcnodeディレクトリにコピーしてください。"
-            echo
-
-            break
-
-        fi
-
-    done
-
-    lock_keys
-
-    rm $SHARE_DIR/kes.vkey
-    rm $SHARE_DIR/kes.skey
-
     echo
     pressKeyEnter "メインメニューに戻るにはEnterキーを押してください"
 
@@ -2342,6 +2232,83 @@ calidus_keys() {
 }
 
 
+copy_to_share_dir() {
+
+    clear
+
+    FILE=$(gum file $NODE_HOME --header "===== コピーするファイルを選択してください =====" --padding "3 2" --all)
+
+    if [ $? -ne 0 ]; then
+        return 1
+    fi
+
+    BASENAME=$(basename "$FILE")
+    SRC=$FILE
+    DST=${SHARE_DIR}/${BASENAME}
+
+    echo 
+
+    if readYn "${BASENAME}を'share'ディレクトリにコピーします"; then
+        cp "$SRC" "$DST"
+        if [ $? -ne 0 ]; then
+            echo_red "ファイルのコピーに失敗しました"
+            echo
+        else
+            echo_green "ファイルのコピーに成功しました"
+            echo
+        fi
+    else
+        echo_red "コピーを中止しました"
+        echo
+    fi
+
+    echo
+    if readYn "続けて別のファイルをコピーしますか？"; then
+        copy_to_share_dir
+    fi
+}
+
+
+copy_from_share_dir() {
+
+    clear
+
+    FILE=$(gum file $SHARE_DIR --file --header "===== コピーするファイルを選択してください =====" --padding "3 2" --all)
+
+    if [ $? -ne 0 ]; then
+        return 1
+    fi
+
+    DIR=$(gum file $NODE_HOME --directory --header "===== コピー先ディレクトリを選択してください =====" --padding "3 2" --all)
+
+    BASENAME=$(basename "$FILE")
+    SRC=$FILE
+    DST=${DIR}/${BASENAME}
+
+    echo 
+
+    if readYn "'share'ディレクトリの${BASENAME}を'${DIR}'ディレクトリにコピーします"; then
+        cp "$SRC" "$DST"
+        if [ $? -ne 0 ]; then
+            echo_red "ファイルのコピーに失敗しました"
+            echo
+        else
+            echo_green "ファイルのコピーに成功しました"
+            echo
+        fi
+    else
+        echo_red "コピーを中止しました"
+        echo
+    fi
+
+    echo
+    if readYn "続けて別のファイルをコピーしますか？"; then
+        copy_from_share_dir
+    fi
+}
+
+
+
 #
 # メインヘッダーを描画します
 #
@@ -2353,32 +2320,42 @@ main_header() {
 
     available_disk=$(df -h /usr | awk 'NR==2 {print $4}')
 
-    network=${CARDANO_NODE_NETWORK_ID}
+    network=${NODE_CONFIG}
 
     has_keys="NO"
     emoji_keys=""
     
     if keys_is_installed; then
-        has_keys="YES"
-        emoji_keys=":unlock:"
+        has_keys="YES🔓"
+        emoji_keys=""
     else
         if encrypted_keys_exists; then
-            has_keys="ENCRYPT"
-            emoji_keys=":lock:"
+            has_keys="ENCRYPT🔒"
+            emoji_keys=""
         fi
     fi
+
+    if calidus_keys_is_installed; then
+        has_calidus_keys="YES"
+    else
+        has_calidus_keys="NO"
+    fi
+
     clear
 
     if existsGum; then
-        gum style --foreground 4 --border double --align center --width 60 --margin "0 1" --padding "1 2" \
+        gum style --foreground 201 --border double --align center --width 70 --margin "0 0" --padding "0 2" \
             'SPO JAPAN GUILD TOOL for Airgap' "v${CTOOL_VERSION} on Dockerfile v${AIRGAP_VERSION}"
         
-        echo -n " {{ Bold \"Network:\" }} {{ Color \"2\" \"\" \"-${network}-\" }}" | gum format --type template
-        echo -n " {{ Bold \"CLL:\" }} {{ Color \"3\" \"\" \"${cli_version}\" }}" | gum format --type template
-        echo -n " | {{ Bold \"Disk残容量:\" }} {{ Color \"3\" \"\" \"${available_disk}B\" }}" | gum format --type template
-        echo -n " | {{ Bold \"Keys:\" }} {{ Color \"3\" \"\" \"${has_keys}\" }}" | gum format --type template
-        echo -n "${emoji_keys}" | gum format --type emoji
+        echo -n " {{ Bold \" Network:\" }} {{ Color \"2\" \"\" \"-${network}- \" }}" | gum format --type template
+        echo -n " | {{ Bold \"CLL:\" }} {{ Color \"3\" \"\" \"${cli_version} \" }}" | gum format --type template
+        echo -n " | {{ Bold \"Disk残容量:\" }} {{ Color \"3\" \"\" \"${available_disk}B \" }} " | gum format --type template
         echo
+        echo    "------------------------------------------------------------------------"
+        echo -n " {{ Bold \" Calius Keys:\" }} {{ Color \"3\" \"\" \"${has_calidus_keys} \" }} " | gum format --type template
+        echo -n " | {{ Bold \"Cold Keys:\" }} {{ Color \"3\" \"\" \"${has_keys}\" }}" | gum format --type template
+        echo
+        echo    "------------------------------------------------------------------------"
         echo
     else
         echo
@@ -2514,6 +2491,42 @@ governance_menu() {
 }
 
 
+
+file_transfer_menu() {
+
+    main_header
+    if existsGum; then
+        menu=$(gum choose --limit 1 --height 8 --header "===== ファイル転送 =====" "1. shareディレクトリにコピー" "2. shareディレクトリからコピー" "h. ホームへ戻る" "q. 終了")
+        echo " $menu"
+        menu=${menu:0:1}
+    fi
+
+    case ${menu} in
+        1)
+            copy_to_share_dir
+            file_transfer_menu
+            ;;
+        2)
+            copy_from_share_dir
+            file_transfer_menu
+            ;;
+        h)
+            main_menu
+            ;;
+        q)
+            echo
+            quit
+            ;;
+        *)
+            echo
+            echo '番号が不正です...'
+            sleep 1
+            file_transfer_menu
+            ;;
+    esac
+}
+
+
 wallet_menu() {
 
     main_header
@@ -2578,7 +2591,7 @@ main_menu() {
 
     main_header
     if existsGum; then
-        menu=$(gum choose --limit 1 --height 8 --header "===== メインメニュー =====" "1. ウォレット操作" "2. KES更新" "3. ガバナンス(登録・投票)" "4. Calidus キーの発行" "s. 各種設定" "q. 終了")
+        menu=$(gum choose --limit 1 --height 8 --header "===== メインメニュー =====" "1. ウォレット操作" "2. KES更新" "3. ガバナンス(登録・投票)" "4. Calidus キーの発行" "f. ファイル転送" "s. 各種設定" "q. 終了")
         echo " $menu"
         menu=${menu:0:1}
     else
@@ -2609,6 +2622,9 @@ main_menu() {
         	;;
         4)
             calidus_keys
+            ;;
+        f)
+            file_transfer_menu
             ;;
         s)
             settings_menu
