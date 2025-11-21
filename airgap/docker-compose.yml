@@ -10,9 +10,9 @@ services:
     network_mode: none
 
 volumes:
-  cardano:
-    driver: local
   local_bin:
     driver: local
   etc:
+    driver: local
+  cardano:
     driver: local
