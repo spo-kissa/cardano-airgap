@@ -3,10 +3,10 @@
 set -u
 #set -x
 
-CTOOL_VERSION=0.6.68
+CTOOL_VERSION=0.6.69
 
 
-SHARE_DIR="/mnt/share"
+SHARE_DIR=$SHARE
 
 # General exit handler
 cleanup() {
@@ -2231,7 +2231,9 @@ calidus_keys() {
     return 0
 }
 
-
+#
+# ファイルを'share'ディレクトリにコピー
+#
 copy_to_share_dir() {
 
     clear
@@ -2269,6 +2271,9 @@ copy_to_share_dir() {
 }
 
 
+#
+# 'share'ディレクトリからファイルをコピー
+#
 copy_from_share_dir() {
 
     clear
@@ -2367,7 +2372,9 @@ main_header() {
     fi
 }
 
-
+#
+# 各種設定メニュー
+#
 settings_menu() {
 
     main_header
@@ -2454,7 +2461,9 @@ settings_menu() {
     settings_menu
 }
 
-
+#
+# ガバナンスメニュー
+#
 governance_menu() {
 
     main_header
@@ -2491,7 +2500,9 @@ governance_menu() {
 }
 
 
-
+#
+# ファイル転送メニュー
+#
 file_transfer_menu() {
 
     main_header
@@ -2527,6 +2538,9 @@ file_transfer_menu() {
 }
 
 
+#
+# ウォレット操作メニュー
+#
 wallet_menu() {
 
     main_header
@@ -2587,6 +2601,9 @@ wallet_menu() {
 }
 
 
+#
+# メインメニュー
+#
 main_menu() {
 
     main_header
