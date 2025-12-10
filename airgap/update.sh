@@ -46,3 +46,7 @@ else
     fi
 fi
 
+if [ $RET -eq 0 ]; then
+    ./start.sh
+fi
+
