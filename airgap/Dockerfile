@@ -1,7 +1,7 @@
 FROM debian:bookworm-slim AS base
 
 # airgap version specifed
-ENV AIRGAP_VERSION=10.5.1.9
+ENV AIRGAP_VERSION=10.5.3.0
 
 
 #
@@ -16,7 +16,7 @@ ARG TARGETARCH
 # Cardano-Singer
 ENV CS_VERSION=1.27.0
 
-ENV DEBIAN_FRONTEND noninteractive
+ENV DEBIAN_FRONTEND=noninteractive
 RUN <<EOF
 apt-get update
 apt-get install -y \
@@ -33,7 +33,7 @@ set -eux
 mkdir -p /out
 
 mkdir -p /home/cardano/git/cardano-node2 && cd /home/cardano/git/cardano-node2
-curl -SL https://github.com/IntersectMBO/cardano-node/releases/download/10.5.1/cardano-node-10.5.1-linux.tar.gz \
+curl -SL https://github.com/IntersectMBO/cardano-node/releases/download/10.5.3/cardano-node-10.5.3-linux.tar.gz \
  | tar -zxC /home/cardano/git/cardano-node2 ./bin/cardano-cli
 mv $(find /home/cardano/git/cardano-node2 -type f -name "cardano-cli") /out/cardano-cli
 /out/cardano-cli version
@@ -62,7 +62,7 @@ EOF
 #
 # Runtime Stage
 #
-FROM base as runtime
+FROM base AS runtime
 
 RUN <<'EOF'
 set -eux
@@ -131,8 +131,8 @@ RUN touch /home/cardano/.bashrc \
 
 RUN . /home/cardano/.bashrc
 RUN chown -R cardano:cardano /home/cardano
-ENV LANG en_US.UTF-8
-ENV LANGUAGE en_US:en
-ENV LC_ALL en_US.UTF-8
+ENV LANG=en_US.UTF-8
+ENV LANGUAGE=en_US:en
+ENV LC_ALL=en_US.UTF-8
 
 ENTRYPOINT ["tail", "-F", "/dev/null"]

@@ -3,10 +3,10 @@
 set -u
 #set -x
 
-CTOOL_VERSION=0.6.69
+CTOOL_VERSION=0.6.70
 
 
-SHARE_DIR=$SHARE
+SHARE_DIR="${SHARE:-"/mnt/share"}"
 
 # General exit handler
 cleanup() {
@@ -1272,15 +1272,56 @@ reflesh_kes() {
 #
 vote_spo() {
 
-	clear
+    while true; do
+
+    	clear
+
+        echo
+        echo "■ ブロックプロデューサーノードで gtool を起動し、SPO投票を始めてください。"
+        echo
+        echo "1. BPの /home/cardano/cnodeにあるcreate_votetx_script と params.json を エアギャップの~/cnode/にコピーしてください"
+        echo
+        echo " 上記の表示が出たら、create_votetx_script と params.json を share ディレクトリにコピーしてください。"
+        echo
+
+        pressKeyEnter "コピーができたらEnterキーを押してください"
+
+        if [ -s "${SHARE_DIR}/create_votetx_script" ] && [ -f "${SHARE_DIR}/create_votetx_script" ]; then
+
+            if [ -s "${SHARE_DIR}/params.json" ] && [ -f "${SHARE_DIR}/params.json" ]; then
+
+                break;
+
+            else
+
+                echo_red "params.json ファイルが空かファイルが見つかりません"
+                echo
+
+            fi
+
+        else
+
+            echo_red "create_votetx_script ファイルが空かファイルが見つかりません"
+
+        fi
+
+        echo
+        if readYn "もう一度チェックしますか？"; then
+            continue;
+        else
+            main_menu
+        fi
+
+    done
 
     cp "$SHARE_DIR/create_votetx_script" "$NODE_HOME/create_votetx_script"
     cp "$SHARE_DIR/params.json" "$NODE_HOME/params.json"
-	SCRIPT_SHA=$(sha256sum "$NODE_HOME/create_votetx_script" | awk '{ print $1 }')
+    local SCRIPT_SHA256
+	SCRIPT_SHA256=$(sha256sum "$NODE_HOME/create_votetx_script" | awk '{ print $1 }')
 	
     echo 'ハッシュは以下の通りです。'
     echo -n 'ハッシュ値： '
-    echo_green "$SCRIPT_SHA"
+    echo_green "$SCRIPT_SHA256"
     echo
     echo
     if ! readYn '次の手順を実行しますか？'; then
@@ -1297,12 +1338,11 @@ vote_spo() {
     
     # shellcheck disable=SC1091
     # shellcheck disable=SC2086
-    source $NODE_HOME/create_votetx_script
+    . "$NODE_HOME/create_votetx_script"
 
     unuse_coldkeys
 
-    mkdir ${SHARE_DIR}/governance
-    cp "$NODE_HOME/governance/vote-tx.signed" ${SHARE_DIR}/governance/vote-tx.signed
+    cp "$NODE_HOME/governance/vote-tx.signed" ${SHARE_DIR}/vote-tx.signed
 
     rm "$NODE_HOME/governance/vote-tx.signed"
     rm "$NODE_HOME/create_votetx_script"
@@ -1311,10 +1351,13 @@ vote_spo() {
     rm "$SHARE_DIR/params.json"
 
     echo
-    echo_green "'share/governance'ディレクトリ内に、'vote-tx.signed'ファイルを出力しました。"
+    echo_green "'share'ディレクトリ内に、'vote-tx.signed'ファイルを出力しました。"
     echo
     echo
-    pressKeyEnter "このファイルをBPに転送し、処理を続行してください"
+    echo_green "このファイルをBPの ~/cnode/governance/ に転送し、BPにて処理を続行してください"
+    echo
+    echo
+    pressKeyEnter "メインメニューに戻るにはEnterキーを押してください"
 
 	main_menu
 }
