@@ -13,8 +13,10 @@ echo.
 
 pause
 
-docker compose -f build --no-cache
+docker compose build --no-cache
 
-docker compose -f up -d
+docker compose up -d
 
-docker cp bin/ctool.sh airgap:/home/cardano/bin/ctool.sh
+docker compose cp bin/ctool.sh airgap:/home/cardano/bin/ctool.sh
+
+start.bat
