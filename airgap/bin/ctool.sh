@@ -146,6 +146,7 @@ check_coldkeys_exists() {
         echo
         keys_is_installed
         if [ $? -ne 0 ]; then
+            echo
             echo_red "コールドキーがインポートされていません。"
             echo
             echo
@@ -1674,7 +1675,15 @@ encrypt_keys() {
     cd "$HOME" || exit
     unlock_keys
 
-    if ! tar czf ${COLDKEYS_TARBALL} ./cold-keys/node.* ./cnode/payment.{addr,skey,vkey} ./cnode/vrf.{skey,vkey} ./cnode/stake.{addr,skey,vkey}; then
+    local RES
+    if calidus_keys_is_installed; then
+        tar czf ${COLDKEYS_TARBALL} ./cold-keys/node.* ./cnode/payment.{addr,skey,vkey} ./cnode/vrf.{skey,vkey} ./cnode/stake.{addr,skey,vkey} ./cnode/calidus/myCalidusKey.{skey,vkey} ./cnode/calidus/myCalidusRegistrationMetadata.json ./cnode/calidus/Calidus-MnemonicsKey.json
+        RES=$?
+    else
+        tar czf ${COLDKEYS_TARBALL} ./cold-keys/node.* ./cnode/payment.{addr,skey,vkey} ./cnode/vrf.{skey,vkey} ./cnode/stake.{addr,skey,vkey}
+        RES=$?
+    fi
+    if [[ $RES -ne 0 ]] then
         echo
         echo_red "コールドキーの圧縮に失敗しました"
         echo
@@ -2400,7 +2409,7 @@ main_header() {
         echo -n " | {{ Bold \"Disk残容量:\" }} {{ Color \"3\" \"\" \"${available_disk}B \" }} " | gum format --type template
         echo
         echo    "------------------------------------------------------------------------"
-        echo -n " {{ Bold \" Calius Keys:\" }} {{ Color \"3\" \"\" \"${has_calidus_keys} \" }} " | gum format --type template
+        echo -n " {{ Bold \" Calidus Keys:\" }} {{ Color \"3\" \"\" \"${has_calidus_keys} \" }} " | gum format --type template
         echo -n " | {{ Bold \"Cold Keys:\" }} {{ Color \"3\" \"\" \"${has_keys}\" }}" | gum format --type template
         echo
         echo    "------------------------------------------------------------------------"
@@ -2422,7 +2431,7 @@ settings_menu() {
 
     main_header
     if existsGum; then
-        menu=$(gum choose --limit 1 --height 10 --header "===== 各種設定 =====" "1. キーをインポート" "2. cardao-cliバージョンアップ" "3. ctoolバージョンアップ" "4. キー暗号化" "5. キー復号化" "6. キーハッシュ生成" "7. キーハッシュ検証" "h. ホームへ戻る" "q. 終了")
+        menu=$(gum choose --limit 1 --height 10 --header "===== 各種設定 =====" "1. キーをインポート" "2. cardao-cliバージョンアップ" "3. ctoolバージョンアップ" "4. キーの暗号化" "5. キーの復号化" "6. キーハッシュ生成" "7. キーハッシュ検証" "h. ホームへ戻る" "q. 終了")
         echo " $menu"
         menu=${menu:0:1}
     else
@@ -2434,8 +2443,8 @@ settings_menu() {
         echo ' [2] cardao-cliバージョンアップ'
         echo ' [3] ctoolバージョンアップ'
         echo ' --------------------------------'
-        echo ' [4] キー暗号化'
-        echo ' [5] キー復号化'
+        echo ' [4] キーの暗号化'
+        echo ' [5] キーの復号化'
         echo ' --------------------------------'
         echo ' [h] ホームへ戻る  [q] 終了'
         echo
