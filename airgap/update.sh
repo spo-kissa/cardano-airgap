@@ -47,6 +47,7 @@ else
 fi
 
 if [ $RET -eq 0 ]; then
+    "${DC[@]}" cp bin/ctool.sh airgap:/home/cardano/bin/ctool.sh
     ./start.sh
 fi
 
