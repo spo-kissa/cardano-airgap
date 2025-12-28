@@ -3,7 +3,7 @@
 set -u
 #set -x
 
-CTOOL_VERSION=0.6.70
+CTOOL_VERSION=0.6.71
 
 
 SHARE_DIR="${SHARE:-"/mnt/share"}"
@@ -146,6 +146,7 @@ check_coldkeys_exists() {
         echo
         keys_is_installed
         if [ $? -ne 0 ]; then
+            echo
             echo_red "コールドキーがインポートされていません。"
             echo
             echo
@@ -213,7 +214,42 @@ echo_magenta() {
 }
 
 
+#
+# lib: エアギャップ名を解析する
+#
+parse_airgap_name() {
+    local parts
+
+    IFS='-_' read -r -a parts <<< "$AIRGAP_NAME"
+
+    echo "${parts[@]}"
+}
+
+#
+# lib: エアギャップ名を取得する
+#
+get_airgap_name() {
+    local parts=$(parse_airgap_name)
+    IFS=' '
+    local names=($parts)
+    local count=${#names[@]}
+
+    if [ $count -eq 1 ]; then
+        echo $names[0]
+    fi
+
+    unset 'names[0]'
+    names=("${names[@]}")
+
+    IFS=-
+    echo "${names[*]}"
+}
+
+#
+# メイン関数
+#
 main() {
+    clear
     check_self_update
     check_network
     check_coldkeys_exists
@@ -1674,7 +1710,15 @@ encrypt_keys() {
     cd "$HOME" || exit
     unlock_keys
 
-    if ! tar czf ${COLDKEYS_TARBALL} ./cold-keys/node.* ./cnode/payment.{addr,skey,vkey} ./cnode/vrf.{skey,vkey} ./cnode/stake.{addr,skey,vkey}; then
+    local RES
+    if calidus_keys_is_installed; then
+        tar czf ${COLDKEYS_TARBALL} ./cold-keys/node.* ./cnode/payment.{addr,skey,vkey} ./cnode/vrf.{skey,vkey} ./cnode/stake.{addr,skey,vkey} ./cnode/calidus/myCalidusKey.{skey,vkey} ./cnode/calidus/myCalidusRegistrationMetadata.json ./cnode/calidus/Calidus-MnemonicsKey.json
+        RES=$?
+    else
+        tar czf ${COLDKEYS_TARBALL} ./cold-keys/node.* ./cnode/payment.{addr,skey,vkey} ./cnode/vrf.{skey,vkey} ./cnode/stake.{addr,skey,vkey}
+        RES=$?
+    fi
+    if [[ $RES -ne 0 ]] then
         echo
         echo_red "コールドキーの圧縮に失敗しました"
         echo
@@ -1789,14 +1833,14 @@ decrypt_keys() {
         echo
         pressKeyEnter "メニューに戻るにはエンターキーを押してください"
         echo
-        rm -f "${HOME}/${COLDKEYS_TARBALL}"
+        rm -rf "${HOME}/${COLDKEYS_TARBALL}"
         return 1
     fi
 
     lock_keys
 
-    rm "${HOME}/${COLDKEYS_TARBALL}"
-    rm "${COLDKEYS_ENCFILE}"
+    rm -rf "${HOME}/${COLDKEYS_TARBALL}"
+    rm -rf "${COLDKEYS_ENCFILE}"
 
     return 0
 }
@@ -2364,14 +2408,16 @@ main_header() {
 
     clear
 
-    cli_version=$(cardano-cli version | head -1 | cut -d' ' -f2)
+    local airgap_name=$(get_airgap_name)
 
-    available_disk=$(df -h /usr | awk 'NR==2 {print $4}')
+    local cli_version=$(cardano-cli version | head -1 | cut -d' ' -f2)
 
-    network=${NODE_CONFIG}
+    local available_disk=$(df -h /usr | awk 'NR==2 {print $4}')
 
-    has_keys="NO"
-    emoji_keys=""
+    local network=${NODE_CONFIG}
+
+    local has_keys="NO"
+    local emoji_keys=""
     
     if keys_is_installed; then
         has_keys="YES🔓"
@@ -2383,6 +2429,7 @@ main_header() {
         fi
     fi
 
+    local has_calidus_keys
     if calidus_keys_is_installed; then
         has_calidus_keys="YES"
     else
@@ -2400,7 +2447,8 @@ main_header() {
         echo -n " | {{ Bold \"Disk残容量:\" }} {{ Color \"3\" \"\" \"${available_disk}B \" }} " | gum format --type template
         echo
         echo    "------------------------------------------------------------------------"
-        echo -n " {{ Bold \" Calius Keys:\" }} {{ Color \"3\" \"\" \"${has_calidus_keys} \" }} " | gum format --type template
+        echo -n " | {{ Color \"3\" \"${airgap_name} \" }} " | gum format --type template
+        echo -n " | {{ Bold \"Calidus Keys:\" }}{{ Color \"3\" \"\" \"${has_calidus_keys} \" }} " | gum format --type template
         echo -n " | {{ Bold \"Cold Keys:\" }} {{ Color \"3\" \"\" \"${has_keys}\" }}" | gum format --type template
         echo
         echo    "------------------------------------------------------------------------"
@@ -2422,7 +2470,7 @@ settings_menu() {
 
     main_header
     if existsGum; then
-        menu=$(gum choose --limit 1 --height 10 --header "===== 各種設定 =====" "1. キーをインポート" "2. cardao-cliバージョンアップ" "3. ctoolバージョンアップ" "4. キー暗号化" "5. キー復号化" "6. キーハッシュ生成" "7. キーハッシュ検証" "h. ホームへ戻る" "q. 終了")
+        menu=$(gum choose --limit 1 --height 10 --header "===== 各種設定 =====" "1. キーをインポート" "2. cardao-cliバージョンアップ" "3. ctoolバージョンアップ" "4. キーの暗号化 (エクスポート)" "5. キーの復号化 (インポート)" "6. キーハッシュ生成" "7. キーハッシュ検証" "h. ホームへ戻る" "q. 終了")
         echo " $menu"
         menu=${menu:0:1}
     else
@@ -2434,8 +2482,8 @@ settings_menu() {
         echo ' [2] cardao-cliバージョンアップ'
         echo ' [3] ctoolバージョンアップ'
         echo ' --------------------------------'
-        echo ' [4] キー暗号化'
-        echo ' [5] キー復号化'
+        echo ' [4] キーの暗号化 (エクスポート)'
+        echo ' [5] キーの復号化 (インポート)'
         echo ' --------------------------------'
         echo ' [h] ホームへ戻る  [q] 終了'
         echo
@@ -2588,7 +2636,7 @@ wallet_menu() {
 
     main_header
     if existsGum; then
-        menu=$(gum choose --limit 1 --height 8 --header "===== ウォレット操作 =====" "1. プール報酬(stake.addr)任意のアドレス(ADAHandle)へ出金" "2. プール報酬(stake.addr)payment.addrへの出金" "3. プール資金(payment.addr)任意のアドレス(ADAHandle)へ出金" "h. ホームへ戻る" "q. 終了")
+        menu=$(gum choose --limit 1 --height 8 --header "===== ウォレット操作 =====" "1. プール報酬(stake.addr)を、任意のアドレス(ADAHandle)へ出金" "2. プール報酬(stake.addr)を、payment.addrへ出金" "3. プール資金(payment.addr)を、任意のアドレス(ADAHandle)へ出金" "h. ホームへ戻る" "q. 終了")
         echo " $menu"
         menu=${menu:0:1}
     else
