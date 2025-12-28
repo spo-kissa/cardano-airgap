@@ -1,4 +1,5 @@
-#!/bin/sh
+#!/usr/bin/env bash
+set -euo pipefail
 
 docker compose stop
 if [ $? -ne 0 ]; then

@@ -1,7 +1,12 @@
 services:
   airgap:
+    environment:
+      AIRGAP_NAME: "${AIRGAP_NAME:-}"
     build:
       context: .
+    hostname: "${AIRGAP_NAME:-airgap}"
+    extra_hosts:
+      - "${AIRGAP_NAME}:127.0.0.1"
     volumes:
       - ./share:/mnt/share:rw
       - local_bin:/usr/local/bin

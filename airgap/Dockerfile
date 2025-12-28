@@ -3,6 +3,12 @@ FROM debian:bookworm-slim AS base
 # airgap version specifed
 ENV AIRGAP_VERSION=10.5.3.0
 
+# Cardano-Node version
+ENV CNODE_VERSION=10.5.3
+
+# Cardano-Singer version
+ENV CS_VERSION=1.27.0
+
 
 #
 # Build Stage
@@ -12,9 +18,6 @@ FROM base AS builder
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 ARG TARGETARCH
-
-# Cardano-Singer
-ENV CS_VERSION=1.27.0
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN <<EOF
@@ -33,11 +36,11 @@ set -eux
 mkdir -p /out
 
 mkdir -p /home/cardano/git/cardano-node2 && cd /home/cardano/git/cardano-node2
-curl -SL https://github.com/IntersectMBO/cardano-node/releases/download/10.5.3/cardano-node-10.5.3-linux.tar.gz \
+curl -SL https://github.com/IntersectMBO/cardano-node/releases/download/${CNODE_VERSION}/cardano-node-${CNODE_VERSION}-linux.tar.gz \
  | tar -zxC /home/cardano/git/cardano-node2 ./bin/cardano-cli
 mv $(find /home/cardano/git/cardano-node2 -type f -name "cardano-cli") /out/cardano-cli
 /out/cardano-cli version
-sleep 5
+sleep 2
 EOF
 
 # cardano-signer
@@ -55,7 +58,7 @@ rm cardano-signer-${CS_VERSION}_linux-${CS_ARCH}.tar.gz
 install -m 0755 ./cardano-signer /out/cardano-signer
 echo Cardano-Signer Installed!
 /out/cardano-signer version
-sleep 5
+sleep 2
 EOF
 
 
