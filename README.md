@@ -16,6 +16,13 @@ Cardano airgap node docker(-compose) and TUI tool (ctool).
 
 ## History
 
+- 10.5.3.1 2025-12-28
+    - Added support for displaying the pool ticker name in ctool
+    - Minor fixed for ctool
+
+- 10.5.3.0 2025-12-11
+    - cardano-node 10.5.3 support.
+
 - 10.5.1.5 2025-09-11
     - Fixed a bug causing docker build to fail on Apple silicon Macs.
     - ctool v0.6.66

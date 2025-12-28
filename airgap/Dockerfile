@@ -1,7 +1,7 @@
 FROM debian:bookworm-slim AS base
 
 # airgap version specifed
-ENV AIRGAP_VERSION=10.5.3.0
+ENV AIRGAP_VERSION=10.5.3.1
 
 # Cardano-Node version
 ENV CNODE_VERSION=10.5.3
