@@ -1,5 +1,7 @@
 @echo off
 
+for %%I in (.) do set "CURDIR=%%~nxI"
+SET AIRGAP_NAME=%CURDIR%
 
 echo.
 echo Å¶ íçà” Å¶

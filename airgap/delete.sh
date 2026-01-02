@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+CURDIR="$(basename "$PWD")"
+export AIRGAP_NAME="$CURDIR"
+
 echo
 echo "※ 注意 ※"
 echo "このコマンドを続行すると、鍵ファイルも削除されます！"
