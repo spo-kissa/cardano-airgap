@@ -41,7 +41,7 @@ Cardano airgap node docker(-compose) and TUI tool (ctool).
 
 - 10.4.1.3 2025-06-17
   - ctool v0.6.51
-  - Add keys hasher future.
+  - Add keys hasher feature.
 
 - 10.4.1 2025-06-06
   - cardano-node 10.4.1 support.
