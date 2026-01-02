@@ -1,7 +1,7 @@
 FROM debian:bookworm-slim AS base
 
 # airgap version specifed
-ENV AIRGAP_VERSION=10.5.3.1
+ENV AIRGAP_VERSION=10.5.3.2
 
 # Cardano-Node version
 ENV CNODE_VERSION=10.5.3
@@ -132,7 +132,6 @@ RUN touch /home/cardano/.bashrc \
  && echo alias ctool="ctool.sh" >> /home/cardano/.bashrc \
  && echo alias airgap="'cd $HOME/cnode && [ -f airgap-set.tar.gz ] && tar -xOzf airgap-set.tar.gz airgap_script | bash -s verify || echo "airgap-set.tar.gz が見つかりません"'" >> /home/cardano/.bashrc
 
-RUN . /home/cardano/.bashrc
 RUN chown -R cardano:cardano /home/cardano
 ENV LANG=en_US.UTF-8
 ENV LANGUAGE=en_US:en
