@@ -21,7 +21,7 @@ jobs:
     if: >
       github.event_name == 'workflow_dispatch' ||
       (github.event.pull_request.merged == true && startsWith(github.head_ref, 'release/'))
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
 
     steps:
       - name: Checkoout
@@ -40,18 +40,6 @@ jobs:
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "RELEASE_TAG=$TAG" >> "$GITHUB_ENV"
 
-      # ノートだけを作る（公開しない）
-      - name: Draft notes (Release Drafter)
-        id: rd
-        uses: release-drafter/release-drafter@v6
-        with:
-          tag: ${{ steps.vars.outputs.tag }}
-          name: Release ${{ steps.vars.outputs.tag }}
-          version: ${{ steps.vars.outputs.tag }}
-          publish: false
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-
       - name: Run Release Script
         run: ./release.sh "${RELEASE_TAG}"
 
@@ -62,10 +50,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.vars.outputs.tag }}
-          body: ${{ steps.rd.outputs.body }}
-          append_body: true
-          overwrite_files: true
-          fail_on_unmatched_files: false
+          generate_release_notes: true
+          draft: false
           files: |
             release/**
         env:
