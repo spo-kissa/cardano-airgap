@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-slim
 
     steps:
-      - name: Checkoout
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Resolve tag
