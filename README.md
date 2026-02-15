@@ -15,6 +15,10 @@ Cardano airgap node docker(-compose) and TUI tool (ctool).
 
 ## History
 
+- 10.5.4.0 2026-02-15
+  - cardano-node 10.5.4 support.
+  - Minor fix.
+
 - 10.5.3.2 2026-01-02
   - Fixed shell scripts bugs.
 
