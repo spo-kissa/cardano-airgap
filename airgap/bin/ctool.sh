@@ -3,7 +3,7 @@
 set -u
 #set -x
 
-CTOOL_VERSION=0.6.71
+CTOOL_VERSION=0.6.72
 
 
 SHARE_DIR="${SHARE:-"/mnt/share"}"
@@ -57,7 +57,6 @@ ctool_update() {
         main
 
     fi
-
 }
 
 #
@@ -235,14 +234,15 @@ get_airgap_name() {
     local count=${#names[@]}
 
     if [ $count -eq 1 ]; then
-        echo $names[0]
+        echo "${names[0]}" | tr '[:lower:]' '[:upper:]'
+        return
     fi
 
     unset 'names[0]'
     names=("${names[@]}")
 
     IFS=-
-    echo "${names[*]}"
+    echo "${names[*]}" | tr '[:lower:]' '[:upper:]'
 }
 
 #
