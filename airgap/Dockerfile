@@ -1,10 +1,10 @@
 FROM debian:bookworm-slim AS base
 
 # airgap version specifed
-ENV AIRGAP_VERSION=10.5.4.0
+ENV AIRGAP_VERSION=11.0.1.0
 
 # Cardano-Node version
-ENV CNODE_VERSION=10.5.4
+ENV CNODE_VERSION=11.0.1
 
 # Cardano-Singer version
 ENV CS_VERSION=1.27.0
@@ -36,7 +36,7 @@ set -eux
 mkdir -p /out
 
 mkdir -p /home/cardano/git/cardano-node2 && cd /home/cardano/git/cardano-node2
-curl -SL https://github.com/IntersectMBO/cardano-node/releases/download/${CNODE_VERSION}/cardano-node-${CNODE_VERSION}-linux.tar.gz \
+curl -qSL https://github.com/IntersectMBO/cardano-node/releases/download/${CNODE_VERSION}/cardano-node-${CNODE_VERSION}-linux-amd64.tar.gz \
  | tar -zxC /home/cardano/git/cardano-node2 ./bin/cardano-cli
 mv $(find /home/cardano/git/cardano-node2 -type f -name "cardano-cli") /out/cardano-cli
 /out/cardano-cli version
