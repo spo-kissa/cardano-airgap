@@ -13,7 +13,7 @@ cleanup() {
     [[ -n $1 ]] && err=$1 || err=$?
     [[ $err -eq 0 ]] && clear
     tput cnorm # restore cursor
-    [[ -n ${exit_msg} ]] && echo -e "${exit_msg}" || echo -e "SPO JAPAN GUILD TOOL for Airgap Closed!"
+    [[ -n ${exit_msg} ]] && echo -e "${exit_msg}" || echo -e "SPO Kissa Tool for Airgap Closed!"
     tput sgr0  # turn off all attributes
     exit "$err"
 }
@@ -495,7 +495,7 @@ generate_new_node() {
     echo
     cd "$HOME/cold-keys"
 
-    if ! cardano-cli conway node key-gen \
+    if ! cardano-cli latest node key-gen \
         --cold-verification-key-file node.vkey \
         --cold-signing-key-file node.skey \
         --operational-certificate-issue-counter node.counter; then
@@ -591,7 +591,7 @@ generate_new_node() {
     echo "運用証明書を発行しています..."
     echo
 
-    if ! cardano-cli conway node issue-op-cert \
+    if ! cardano-cli latest node issue-op-cert \
         --kes-verification-key-file kes.vkey \
         --cold-signing-key-file "$HOME/cold-keys/node.skey" \
         --operational-certificate-issue-counter "$HOME/cold-keys/node.counter" \
@@ -628,7 +628,7 @@ generate_new_node() {
     echo_green "支払アドレスキーを作成しています..."
     echo
 
-    if ! cardano-cli conway address key-gen \
+    if ! cardano-cli latest address key-gen \
         --verification-key-file payment.vkey \
         --signing-key-file payment.skey; then
 
@@ -642,7 +642,7 @@ generate_new_node() {
     echo_green "ステークアドレスキーを作成しています..."
     echo
 
-    if ! cardano-cli conway stake-address key-gen \
+    if ! cardano-cli latest stake-address key-gen \
         --verification-key-file stake.vkey \
         --signing-key-file stake.skey; then
 
@@ -656,7 +656,7 @@ generate_new_node() {
     echo_green "ステークアドレスを作成しています..."
     echo
 
-    if ! cardano-cli conway stake-address build \
+    if ! cardano-cli latest stake-address build \
         --stake-verification-key-file stake.vkey \
         --out-file stake.addr \
         "$NODE_NETWORK"; then
@@ -671,7 +671,7 @@ generate_new_node() {
     echo_green "支払用アドレスを作成しています..."
     echo
 
-    if ! cardano-cli conway address build \
+    if ! cardano-cli latest address build \
         --payment-verification-key-file payment.vkey \
         --stake-verification-key-file stake.vkey \
         --out-file payment.addr \
@@ -710,7 +710,7 @@ generate_new_node() {
     echo
     echo
     
-    if ! cardano-cli conway stake-address registration-certificate \
+    if ! cardano-cli latest stake-address registration-certificate \
             --stake-verification-key-file stake.vkey \
             --out-file stake.cert; then
 
@@ -749,7 +749,7 @@ generate_new_node() {
     cp "${SHARE_DIR}/tx.raw" "${NODE_HOME}/tx.raw"
 
     # ステークアドレスの登録(トランザクションファイルへの署名)
-    if ! cardano-cli conway transaction sign \
+    if ! cardano-cli latest transaction sign \
         --tx-body-file tx.raw \
         --signing-key-file payment.skey \
         --signing-key-file stake.skey \
@@ -980,7 +980,7 @@ create_pool_cert_script()
 
     {
         echo "cd $NODE_HOME"
-        echo "cardano-cli conway stake-pool registration-certificate \\"
+        echo "cardano-cli latest stake-pool registration-certificate \\"
         echo "    --cold-verification-key-file $HOME/cold-keys/node.vkey \\"
         echo "    --vrf-verification-key-file vrf.vkey \\"
         echo "    --pool-pledge ${POOLPLEDGE}000000 \\"
@@ -1030,7 +1030,7 @@ create_pool_cert_script()
     echo
     echo
 
-    if ! cardano-cli conway stake-address stake-delegation-certificate \
+    if ! cardano-cli latest stake-address stake-delegation-certificate \
         --stake-verification-key-file stake.vkey \
         --cold-verification-key-file "$HOME/cold-keys/node.vkey" \
         --out-file deleg.cert; then
@@ -1066,7 +1066,7 @@ create_pool_cert_script()
     echo
     echo
 
-    if ! cardano-cli conway transaction sign \
+    if ! cardano-cli latest transaction sign \
         --tx-body-file tx.raw \
         --signing-key-file payment.skey \
         --signing-key-file "$HOME/cold-keys/node.skey" \
@@ -1102,8 +1102,8 @@ create_pool_cert_script()
 
     chmod u+rwx "$HOME/cold-keys"
 
-    cardano-cli conway stake-pool id --cold-verification-key-file "$HOME/cold-keys/node.vkey" --output-format bech32 --out-file pool.id-bech32
-    cardano-cli conway stake-pool id --cold-verification-key-file "$HOME/cold-keys/node.vkey" --output-format hex --out-file pool.id
+    cardano-cli latest stake-pool id --cold-verification-key-file "$HOME/cold-keys/node.vkey" --output-format bech32 --out-file pool.id-bech32
+    cardano-cli latest stake-pool id --cold-verification-key-file "$HOME/cold-keys/node.vkey" --output-format hex --out-file pool.id
     
     chmod a-rwx "$HOME/cold-keys"
 
@@ -1472,7 +1472,7 @@ withdrawal_stake() {
     cd "$NODE_HOME" || exit
     
     # shellcheck disable=SC2086
-    if ! cardano-cli conway transaction sign \
+    if ! cardano-cli latest transaction sign \
         --tx-body-file tx.raw \
         --signing-key-file payment.skey \
         --signing-key-file stake.skey \
@@ -1536,7 +1536,7 @@ withdrawal_stake_to_payment() {
         return 1
     fi
 
-    if ! cardano-cli conway transaction sign \
+    if ! cardano-cli latest transaction sign \
         --tx-body-file tx.raw \
         --signing-key-file payment.skey \
         --signing-key-file stake.skey \
@@ -1599,7 +1599,7 @@ withdrawal_payment() {
         return 1
     fi
     # shellcheck disable=SC2086
-	if ! cardano-cli conway transaction sign \
+	if ! cardano-cli latest transaction sign \
             --tx-body-file tx.raw \
             --signing-key-file payment.skey \
             $NODE_NETWORK \
@@ -2106,7 +2106,7 @@ calidus_keys() {
     echo "1. 最新のスロット番号を取得"
     echo
     echo 'cd $NODE_HOME'
-    echo 'currentSlot=$(cardano-cli conway query tip $NODE_NETWORK | jq -r '.slot')'
+    echo 'currentSlot=$(cardano-cli latest query tip $NODE_NETWORK | jq -r '.slot')'
     echo 'echo Current Slot: $currentSlot'
     echo
     echo
@@ -2129,7 +2129,7 @@ calidus_keys() {
     echo
     echo '4. payment.addr の残高を算出'
     echo
-    echo 'cardano-cli conway query utxo \'
+    echo 'cardano-cli latest query utxo \'
     echo '    --address $(cat payment.addr) \'
     echo '    $NODE_NETWORK \'
     echo '    --output-text \'
@@ -2202,7 +2202,7 @@ calidus_keys() {
     echo
     cd $NODE_HOME || (echo_red "ディレクトリの移動に失敗しました" && return 1)
 
-    if ! cardano-cli conway transaction build-raw \
+    if ! cardano-cli latest transaction build-raw \
         ${tx-in} \
         --tx-out $(cat payment.addr)+${tempBalanceAmont} \
         --tx-out ${destinationAddress}+${amountToSend} \
@@ -2219,7 +2219,7 @@ calidus_keys() {
     fi
 
     echo "最低手数料を計算しています..."
-    fee=$(cardano-cli conway transaction calculate min-fee \
+    fee=$(cardano-cli latest transaction calculate min-fee \
         --tx-body-file tx.tmp \
         --witness-count 1 \
         --protocol-params-file params.json | awk '{print $1}')
@@ -2232,7 +2232,7 @@ calidus_keys() {
     echo
 
     echo "トランザクションファイルを構築しています..."
-    if ! cardano-cli conway transaction build-raw \
+    if ! cardano-cli latest transaction build-raw \
         ${tx-in} \
         --tx-out $(cat payment.addr)+${txOut} \
         --tx-out ${destinationAddress}+${amountToSend} \
@@ -2269,7 +2269,7 @@ calidus_keys() {
         fi
     fi
     
-    if ! cardano-cli conway transaction sign \
+    if ! cardano-cli latest transaction sign \
         --tx-body-file tx.raw \
         --signing-key-file payment.skey \
         $NODE_NETWORK \
@@ -2439,8 +2439,8 @@ main_header() {
     clear
 
     if existsGum; then
-        gum style --foreground 201 --border double --align center --width 70 --margin "0 0" --padding "0 2" \
-            'SPO JAPAN GUILD TOOL for Airgap' "v${CTOOL_VERSION} on Dockerfile v${AIRGAP_VERSION}"
+        gum style --foreground 200 --border double --align center --width 70 --margin "0 0" --padding "0 2" \
+            'SPO Kissa Tool for Airgap' "v${CTOOL_VERSION} on Dockerfile v${AIRGAP_VERSION}"
         
         echo -n " {{ Bold \" Network:\" }} {{ Color \"2\" \"\" \"-${network}- \" }}" | gum format --type template
         echo -n " | {{ Bold \"CLL:\" }} {{ Color \"3\" \"\" \"${cli_version} \" }}" | gum format --type template
@@ -2455,7 +2455,7 @@ main_header() {
         echo
     else
         echo
-        echo -n " >> SPO JAPAN GUILD TOOL for Airgap " && echo_green "ver${CTOOL_VERSION}" && echo " <<"
+        echo -n " >> SPO Kissa Tool for Airgap " && echo_green "ver${CTOOL_VERSION}" && echo " <<"
         echo ' ---------------------------------------------------------------------'
         echo -n " CLI: " && echo_magenta "${cli_version}" && echo -n " | Disk残容量: " && echo_yellow "${available_disk}B" && echo -n " | Keys: " && echo_yellow "${has_keys}"
         echo
