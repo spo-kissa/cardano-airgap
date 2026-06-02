@@ -3,7 +3,7 @@
 set -u
 #set -x
 
-CTOOL_VERSION=0.6.72
+CTOOL_VERSION=0.6.73
 
 
 SHARE_DIR="${SHARE:-"/mnt/share"}"
