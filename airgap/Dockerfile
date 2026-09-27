@@ -1,10 +1,10 @@
 FROM debian:bookworm-slim AS base
 
 # airgap version specifed
-ENV AIRGAP_VERSION=11.0.1.0
+ENV AIRGAP_VERSION=11.1.2.0
 
 # Cardano-Node version
-ENV CNODE_VERSION=11.0.1
+ENV CNODE_VERSION=11.1.2
 
 # Cardano-Singer version
 ENV CS_VERSION=1.27.0
